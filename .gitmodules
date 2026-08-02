@@ -1,0 +1,3 @@
+[submodule "bomb-box-rules-c"]
+	path = bomb-box-rules-c
+	url = git@github.com:CLowbrow/bomb-box-rules-c.git
