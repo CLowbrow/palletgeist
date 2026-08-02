@@ -37,6 +37,7 @@ main :: proc() {
 
 update :: proc() {
 	// Put game here
+}
 
 draw :: proc() {
 	rl.BeginDrawing()
