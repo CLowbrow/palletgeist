@@ -17,9 +17,6 @@ main_menu :: proc() -> Main_Menu_Action {
 	if rl.GuiButton(rl.Rectangle{48, 164, 180, 44}, "Select Level") {
 		return .SelectLevel
 	}
-	if rl.GuiButton(rl.Rectangle{48, 218, 180, 44}, "Quit") {
-		return .Quit
-	}
 
 	return .None
 }

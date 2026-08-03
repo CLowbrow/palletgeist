@@ -51,14 +51,21 @@ load_level_json :: proc(engine: ^Engine, level_json: []u8) -> (response: string,
 	return clone_response(c_response)
 }
 
-move :: proc(engine: ^Engine, direction: Direction) -> (response: string, ok: bool) {
-	if engine == nil || engine.handle == nil {
-		return "", false
+move :: proc(engine: ^Engine, direction: Direction, result: ^Move_Result) -> Call_Status {
+	if result == nil || result.owned_storage != nil {
+		return .Invalid_Argument
 	}
 
-	return clone_response(game_rules_engine_move(engine.handle, u32(direction)))
+	handle: rawptr
+	if engine != nil {
+		handle = engine.handle
+	}
+	return Call_Status(game_rules_engine_move_data(handle, u32(direction), result))
 }
 
+dispose_move_result :: proc(result: ^Move_Result) {
+	game_rules_move_result_dispose(result)
+}
 
 rewind :: proc(engine: ^Engine) -> (response: string, ok: bool) {
 	if engine == nil || engine.handle == nil {
