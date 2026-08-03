@@ -70,22 +70,6 @@ main :: proc() {
 	}
 }
 
-update :: proc(game: ^Game_State) {
-	// Handle input
-	// TODO: move direction should be normalized based on the current camera rotation
-	if game.mode == App_Mode.Playing {
-		if rl.IsKeyPressed(.LEFT) {
-			apply_move(game, .West)
-		} else if rl.IsKeyPressed(.RIGHT) {
-			apply_move(game, .East)
-		} else if rl.IsKeyPressed(.UP) {
-			apply_move(game, .North)
-		} else if rl.IsKeyPressed(.DOWN) {
-			apply_move(game, .South)
-		}
-	}
-}
-
 apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 	result: rules.Move_Result
 	call := rules.move(&game.engine, direction, &result)
@@ -102,6 +86,22 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 		result.tick_count,
 		result.event_count,
 	)
+}
+
+update :: proc(game: ^Game_State) {
+	// Handle input
+	// TODO: move direction should be normalized based on the current camera rotation
+	if game.mode == App_Mode.Playing {
+		if rl.IsKeyPressed(.LEFT) {
+			apply_move(game, .West)
+		} else if rl.IsKeyPressed(.RIGHT) {
+			apply_move(game, .East)
+		} else if rl.IsKeyPressed(.UP) {
+			apply_move(game, .North)
+		} else if rl.IsKeyPressed(.DOWN) {
+			apply_move(game, .South)
+		}
+	}
 }
 
 draw :: proc(game: ^Game_State) {
