@@ -16,6 +16,7 @@ App_Mode :: enum {
 	PauseMenu,
 	LevelWon,
 	LevelLost,
+	Playing,
 }
 
 Game_State :: struct {
@@ -46,6 +47,7 @@ main :: proc() {
 		fmt.eprintln("Could not load level")
 		return
 	}
+	delete(response)
 
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 	defer rl.CloseWindow()
@@ -53,16 +55,57 @@ main :: proc() {
 	rl.SetTargetFPS(60)
 
 	for !rl.WindowShouldClose() {
-		update()
-		draw()
+		update(&game)
+		draw(&game)
 	}
 }
 
-update :: proc() {
-	// Put game here
+update :: proc(game: ^Game_State) {
+	// Handle input
+	if rl.IsKeyPressed(.LEFT) && game.mode == App_Mode.Playing {
+		response, ok := rules.move_left(&game.engine)
+		if ok {
+			// TOOO: Do something
+			delete(response)
+		}
+	}
+	if rl.IsKeyPressed(.RIGHT) && game.mode == App_Mode.Playing {
+		response, ok := rules.move_right(&game.engine)
+		if ok {
+			// TOOO: Do something
+			delete(response)
+		}
+	}
+	if rl.IsKeyPressed(.UP) {
+		if game.mode == App_Mode.Playing {
+			response, ok := rules.move_up(&game.engine)
+			if ok {
+				// TOOO: Do something
+				delete(response)
+			}
+		} else if game.mode == App_Mode.LevelLost ||
+		   game.mode == App_Mode.LevelWon ||
+		   game.mode == App_Mode.MainMenu {
+			// Menu Navigation
+		}
+	}
+	if rl.IsKeyPressed(.DOWN) && game.mode == App_Mode.Playing {
+		if game.mode == App_Mode.Playing {
+			response, ok := rules.move_down(&game.engine)
+			if ok {
+				// TOOO: Do something
+				delete(response)
+			}
+		} else if game.mode == App_Mode.LevelLost ||
+		   game.mode == App_Mode.LevelWon ||
+		   game.mode == App_Mode.MainMenu {
+			// Menu Navigation
+		}
+	}
+
 }
 
-draw :: proc() {
+draw :: proc(game: ^Game_State) {
 	rl.BeginDrawing()
 	defer rl.EndDrawing()
 

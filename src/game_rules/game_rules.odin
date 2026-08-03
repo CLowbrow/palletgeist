@@ -12,6 +12,14 @@ Engine :: struct {
 	handle: rawptr,
 }
 
+// Values match GAME_RULES_DIRECTION_* in the C ABI.
+Direction :: enum u32 {
+	North = 0,
+	East  = 1,
+	South = 2,
+	West  = 3,
+}
+
 create_engine :: proc() -> (engine: Engine, ok: bool) {
 	engine.handle = game_rules_engine_create()
 	ok = engine.handle != nil
@@ -40,6 +48,42 @@ load_level_json :: proc(engine: ^Engine, level_json: []u8) -> (response: string,
 		raw_data(level_json),
 		u32(len(level_json)),
 	)
+	return clone_response(c_response)
+}
+
+move :: proc(engine: ^Engine, direction: Direction) -> (response: string, ok: bool) {
+	if engine == nil || engine.handle == nil {
+		return "", false
+	}
+
+	return clone_response(game_rules_engine_move(engine.handle, u32(direction)))
+}
+
+move_up :: proc(engine: ^Engine) -> (response: string, ok: bool) {
+	return move(engine, .North)
+}
+
+move_right :: proc(engine: ^Engine) -> (response: string, ok: bool) {
+	return move(engine, .East)
+}
+
+move_down :: proc(engine: ^Engine) -> (response: string, ok: bool) {
+	return move(engine, .South)
+}
+
+move_left :: proc(engine: ^Engine) -> (response: string, ok: bool) {
+	return move(engine, .West)
+}
+
+rewind :: proc(engine: ^Engine) -> (response: string, ok: bool) {
+	if engine == nil || engine.handle == nil {
+		return "", false
+	}
+
+	return clone_response(game_rules_engine_rewind(engine.handle))
+}
+
+clone_response :: proc(c_response: cstring) -> (response: string, ok: bool) {
 	if c_response == nil {
 		return "", false
 	}
