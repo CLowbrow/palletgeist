@@ -59,21 +59,6 @@ move :: proc(engine: ^Engine, direction: Direction) -> (response: string, ok: bo
 	return clone_response(game_rules_engine_move(engine.handle, u32(direction)))
 }
 
-move_up :: proc(engine: ^Engine) -> (response: string, ok: bool) {
-	return move(engine, .North)
-}
-
-move_right :: proc(engine: ^Engine) -> (response: string, ok: bool) {
-	return move(engine, .East)
-}
-
-move_down :: proc(engine: ^Engine) -> (response: string, ok: bool) {
-	return move(engine, .South)
-}
-
-move_left :: proc(engine: ^Engine) -> (response: string, ok: bool) {
-	return move(engine, .West)
-}
 
 rewind :: proc(engine: ^Engine) -> (response: string, ok: bool) {
 	if engine == nil || engine.handle == nil {

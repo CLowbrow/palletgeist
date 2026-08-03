@@ -4,10 +4,13 @@ import "core:fmt"
 import rl "vendor:raylib"
 
 import rules "game_rules"
+import menus "menus"
 
 WINDOW_WIDTH :: 1280
 WINDOW_HEIGHT :: 720
 WINDOW_TITLE :: "Palletgeist"
+MIN_WINDOW_WIDTH :: 640
+MIN_WINDOW_HEIGHT :: 360
 
 EMBEDDED_LEVELS := #load_directory("../levels")
 
@@ -17,6 +20,7 @@ App_Mode :: enum {
 	LevelWon,
 	LevelLost,
 	Playing,
+	LevelSelect,
 }
 
 Game_State :: struct {
@@ -49,7 +53,9 @@ main :: proc() {
 	}
 	delete(response)
 
+	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
+	rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
 	defer rl.CloseWindow()
 
 	rl.SetTargetFPS(60)
@@ -62,15 +68,16 @@ main :: proc() {
 
 update :: proc(game: ^Game_State) {
 	// Handle input
+	// TODO: move direction should be normalized based on the current camera rotation
 	if rl.IsKeyPressed(.LEFT) && game.mode == App_Mode.Playing {
-		response, ok := rules.move_left(&game.engine)
+		response, ok := rules.move(&game.engine, .West)
 		if ok {
 			// TOOO: Do something
 			delete(response)
 		}
 	}
 	if rl.IsKeyPressed(.RIGHT) && game.mode == App_Mode.Playing {
-		response, ok := rules.move_right(&game.engine)
+		response, ok := rules.move(&game.engine, .East)
 		if ok {
 			// TOOO: Do something
 			delete(response)
@@ -78,7 +85,7 @@ update :: proc(game: ^Game_State) {
 	}
 	if rl.IsKeyPressed(.UP) {
 		if game.mode == App_Mode.Playing {
-			response, ok := rules.move_up(&game.engine)
+			response, ok := rules.move(&game.engine, .North)
 			if ok {
 				// TOOO: Do something
 				delete(response)
@@ -91,7 +98,7 @@ update :: proc(game: ^Game_State) {
 	}
 	if rl.IsKeyPressed(.DOWN) && game.mode == App_Mode.Playing {
 		if game.mode == App_Mode.Playing {
-			response, ok := rules.move_down(&game.engine)
+			response, ok := rules.move(&game.engine, .South)
 			if ok {
 				// TOOO: Do something
 				delete(response)
@@ -110,6 +117,26 @@ draw :: proc(game: ^Game_State) {
 	defer rl.EndDrawing()
 
 	rl.ClearBackground(rl.Color{20, 22, 28, 255})
-	rl.DrawText("Palletgeist", 48, 44, 40, rl.RAYWHITE)
-	rl.DrawFPS(50, WINDOW_HEIGHT - 38)
+	if game.mode != .Playing {
+		rl.DrawText("Palletgeist", 48, 44, 40, rl.RAYWHITE)
+	}
+
+	if game.mode == .MainMenu {
+		if game.mode == .MainMenu {
+			switch menus.main_menu() {
+			case .Play:
+				game.mode = .Playing
+				break
+			case .None:
+				break
+			case .Quit:
+				rl.CloseWindow()
+				break
+			case .SelectLevel:
+				game.mode = .LevelSelect
+				break
+			}
+		}
+	}
+	//rl.DrawFPS(50, WINDOW_HEIGHT - 38)
 }
