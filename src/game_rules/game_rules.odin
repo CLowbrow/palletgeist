@@ -2,8 +2,11 @@
 // Keep raw C declarations here and expose Odin-friendly wrappers to the game.
 package game_rules
 
+import "base:runtime"
+import "core:strings"
+
 EXPECTED_LEGACY_API_VERSION :: u32(1)
-EXPECTED_DATA_API_VERSION   :: u32(1)
+EXPECTED_DATA_API_VERSION :: u32(1)
 
 Engine :: struct {
 	handle: rawptr,
@@ -24,9 +27,37 @@ destroy_engine :: proc(engine: ^Engine) {
 	engine.handle = nil
 }
 
+load_level_json :: proc(engine: ^Engine, level_json: []u8) -> (response: string, ok: bool) {
+	if engine == nil || engine.handle == nil || len(level_json) == 0 {
+		return "", false
+	}
+	if u64(len(level_json)) > u64(max(u32)) {
+		return "", false
+	}
+
+	c_response := game_rules_engine_load_level(
+		engine.handle,
+		raw_data(level_json),
+		u32(len(level_json)),
+	)
+	if c_response == nil {
+		return "", false
+	}
+	defer game_rules_string_free(c_response)
+
+	clone_error: runtime.Allocator_Error
+	response, clone_error = strings.clone_from_cstring(c_response)
+	if clone_error != nil {
+		return "", false
+	}
+	return response, true
+}
+
 api_is_compatible :: proc() -> bool {
-	return game_rules_api_version() == EXPECTED_LEGACY_API_VERSION &&
-	       game_rules_data_api_version() == EXPECTED_DATA_API_VERSION
+	return(
+		game_rules_api_version() == EXPECTED_LEGACY_API_VERSION &&
+		game_rules_data_api_version() == EXPECTED_DATA_API_VERSION \
+	)
 }
 
 legacy_api_version :: proc() -> u32 {
@@ -40,4 +71,3 @@ data_api_version :: proc() -> u32 {
 status :: proc() -> cstring {
 	return game_rules_engine_status()
 }
-

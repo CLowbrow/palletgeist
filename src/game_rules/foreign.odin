@@ -14,5 +14,11 @@ foreign rules_lib {
 
 	game_rules_engine_create  :: proc() -> rawptr ---
 	game_rules_engine_destroy :: proc(engine: rawptr) ---
-}
 
+	game_rules_engine_load_level :: proc(
+		engine:            rawptr,
+		level_json:        rawptr,
+		level_json_length: u32,
+	) -> cstring ---
+	game_rules_string_free :: proc(result: cstring) ---
+}
