@@ -142,6 +142,14 @@ Snapshot :: struct {
 	resolved: Resolved_State,
 }
 
+// State_Result owns every pointer reachable from state through owned_storage.
+// Do not copy it while owned; call dispose_state_result exactly once after use.
+State_Result :: struct {
+	has_state:     u32,
+	state:         Snapshot,
+	owned_storage: rawptr,
+}
+
 Event :: struct {
 	kind:                  Event_Kind,
 	direction:             Direction,
@@ -198,6 +206,9 @@ when size_of(rawptr) == 8 {
 	#assert(size_of(Resolved_State) == 64)
 	#assert(size_of(Level) == 56)
 	#assert(size_of(Snapshot) == 120)
+	#assert(size_of(State_Result) == 136)
+	#assert(offset_of(State_Result, state) == 8)
+	#assert(offset_of(State_Result, owned_storage) == 128)
 	#assert(size_of(Event) == 80)
 	#assert(size_of(Tick) == 88)
 	#assert(size_of(Move_Result) == 320)

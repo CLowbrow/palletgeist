@@ -20,6 +20,11 @@ foreign rules_lib {
 		level_json:        rawptr,
 		level_json_length: u32,
 	) -> cstring ---
+	game_rules_engine_get_state_data :: proc(
+		engine:     rawptr,
+		out_result: ^State_Result,
+	) -> u32 ---
+	game_rules_state_result_dispose :: proc(result: ^State_Result) ---
 	game_rules_engine_move_data :: proc(
 		engine:     rawptr,
 		direction:  u32,

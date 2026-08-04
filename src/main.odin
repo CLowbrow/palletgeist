@@ -6,6 +6,7 @@ import rl "vendor:raylib"
 import "core:log"
 import rules "game_rules"
 import menus "menus"
+import world "renderers_3d/world_renderer"
 
 WINDOW_WIDTH :: 1280
 WINDOW_HEIGHT :: 720
@@ -25,8 +26,9 @@ App_Mode :: enum {
 }
 
 Game_State :: struct {
-	engine: rules.Engine,
-	mode:   App_Mode,
+	engine:         rules.Engine,
+	world_renderer: world.Renderer,
+	mode:           App_Mode,
 }
 
 main :: proc() {
@@ -57,10 +59,17 @@ main :: proc() {
 	}
 	delete(response)
 
-	rl.SetConfigFlags({.WINDOW_RESIZABLE})
+	rl.SetConfigFlags({.WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 	rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
 	defer rl.CloseWindow()
+
+	world.init(&game.world_renderer)
+	defer world.unload(&game.world_renderer)
+	if !refresh_world_renderer(&game) {
+		fmt.eprintln("Could not get initial level state")
+		return
+	}
 
 	rl.SetTargetFPS(60)
 
@@ -68,6 +77,18 @@ main :: proc() {
 		update(&game)
 		draw(&game)
 	}
+}
+
+refresh_world_renderer :: proc(game: ^Game_State) -> bool {
+	result: rules.State_Result
+	call := rules.get_state(&game.engine, &result)
+	defer rules.dispose_state_result(&result)
+	if call != .Ok || result.has_state == 0 {
+		return false
+	}
+
+	world.load_level(&game.world_renderer, &result.state.level)
+	return true
 }
 
 apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
@@ -90,7 +111,6 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 
 update :: proc(game: ^Game_State) {
 	// Handle input
-	// TODO: move direction should be normalized based on the current camera rotation
 	if game.mode == App_Mode.Playing {
 		if rl.IsKeyPressed(.LEFT) {
 			apply_move(game, .West)
@@ -137,6 +157,10 @@ draw :: proc(game: ^Game_State) {
 				fmt.eprintln("Could not load level")
 				return
 			}
+			if !refresh_world_renderer(game) {
+				fmt.eprintln("Could not get level state")
+				return
+			}
 			game.mode = .Playing
 		}
 	}
@@ -148,5 +172,8 @@ draw :: proc(game: ^Game_State) {
 			game.mode = .MainMenu
 		}
 	}
+
+	// We always draw the level
+	world.draw(&game.world_renderer)
 	//rl.DrawFPS(50, WINDOW_HEIGHT - 38)
 }

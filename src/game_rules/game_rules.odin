@@ -51,6 +51,22 @@ load_level_json :: proc(engine: ^Engine, level_json: []u8) -> (response: string,
 	return clone_response(c_response)
 }
 
+get_state :: proc(engine: ^Engine, result: ^State_Result) -> Call_Status {
+	if result == nil || result.owned_storage != nil {
+		return .Invalid_Argument
+	}
+
+	handle: rawptr
+	if engine != nil {
+		handle = engine.handle
+	}
+	return Call_Status(game_rules_engine_get_state_data(handle, result))
+}
+
+dispose_state_result :: proc(result: ^State_Result) {
+	game_rules_state_result_dispose(result)
+}
+
 move :: proc(engine: ^Engine, direction: Direction, result: ^Move_Result) -> Call_Status {
 	if result == nil || result.owned_storage != nil {
 		return .Invalid_Argument
