@@ -5,6 +5,8 @@ import rules "../../game_rules"
 import "core:mem"
 import rl "vendor:raylib"
 
+FLAT_BASE_THICKNESS :: f32(0.12)
+
 Grid_Transform :: struct {
 	coordinates: rules.Coordinate_System,
 	tile_size:   f32,
@@ -85,11 +87,12 @@ world_bounds :: proc(renderer: ^Renderer) -> (bounds: rl.BoundingBox, ok: bool) 
 
 	max_y: f32
 	for cell in renderer.cells {
-		if cell.kind == .Flat {
-			height := flat_thickness(cell)
-			if height > max_y {
-				max_y = height
-			}
+		height := surface_height(renderer, cell.elevation)
+		if cell.kind == .Ramp {
+			height += renderer.transform.height_unit
+		}
+		if height > max_y {
+			max_y = height
 		}
 	}
 
@@ -107,24 +110,95 @@ draw :: proc(renderer: ^Renderer) {
 		case .Flat:
 			draw_flat(renderer, cell)
 		case .Ramp:
-		// TODO actually draw ramps
+			draw_ramp(renderer, cell)
 		}
 	}
 }
 
-draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell) {
-	position := coordinate_to_world(&renderer.transform, cell.coordinate)
-	thickness := flat_thickness(cell)
-	position.y = thickness * 0.5
-	size := rl.Vector3 {
-		renderer.transform.tile_size * 0.98,
-		thickness,
-		renderer.transform.tile_size * 0.98,
-	}
-	rl.DrawCubeV(position, size, rl.LIGHTGRAY)
-	rl.DrawCubeWiresV(position, size, rl.DARKBROWN)
+draw_quad :: proc(a, b, c, d: rl.Vector3, color: rl.Color) {
+	// Counter-clockwise when viewed from outside the solid.
+	rl.DrawTriangle3D(a, b, c, color)
+	rl.DrawTriangle3D(a, c, d, color)
 }
 
-flat_thickness :: proc(cell: rules.Cell) -> f32 {
-	return 0.12 + (f32(0.5) * f32(cell.elevation))
+draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell) {
+	center := coordinate_to_world(&renderer.transform, cell.coordinate)
+	half := renderer.transform.tile_size * 0.5
+
+	x_min := center.x - half
+	x_max := center.x + half
+	z_min := center.z - half // North
+	z_max := center.z + half // South
+
+	low_y := surface_height(renderer, cell.elevation)
+	high_y := low_y + renderer.transform.height_unit
+
+	// All ramp solids begin at the same y=0 plane as flat cubes.
+	b_nw := rl.Vector3{x_min, 0, z_min}
+	b_ne := rl.Vector3{x_max, 0, z_min}
+	b_se := rl.Vector3{x_max, 0, z_max}
+	b_sw := rl.Vector3{x_min, 0, z_max}
+
+	t_nw := rl.Vector3{x_min, high_y, z_min}
+	t_ne := rl.Vector3{x_max, high_y, z_min}
+	t_se := rl.Vector3{x_max, high_y, z_max}
+	t_sw := rl.Vector3{x_min, high_y, z_max}
+
+	switch cell.low_direction {
+	case .North:
+		t_nw.y = low_y
+		t_ne.y = low_y
+	case .East:
+		t_ne.y = low_y
+		t_se.y = low_y
+	case .South:
+		t_se.y = low_y
+		t_sw.y = low_y
+	case .West:
+		t_sw.y = low_y
+		t_nw.y = low_y
+	}
+
+	// Bottom and four vertical sides.
+	draw_quad(b_nw, b_ne, b_se, b_sw, rl.DARKGRAY)
+	// TODO: Can't see this one but put it back if we ever rotate
+	// draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
+	draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
+	draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
+	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
+
+	// Top
+	draw_quad(t_nw, t_sw, t_se, t_ne, rl.LIGHTGRAY)
+}
+
+draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell) {
+	center := coordinate_to_world(&renderer.transform, cell.coordinate)
+	half := renderer.transform.tile_size * 0.5
+	top_y := surface_height(renderer, cell.elevation)
+
+	x_min := center.x - half
+	x_max := center.x + half
+	z_min := center.z - half // North
+	z_max := center.z + half // South
+
+	b_nw := rl.Vector3{x_min, 0, z_min}
+	b_ne := rl.Vector3{x_max, 0, z_min}
+	b_se := rl.Vector3{x_max, 0, z_max}
+	b_sw := rl.Vector3{x_min, 0, z_max}
+
+	t_nw := rl.Vector3{x_min, top_y, z_min}
+	t_ne := rl.Vector3{x_max, top_y, z_min}
+	t_se := rl.Vector3{x_max, top_y, z_max}
+	t_sw := rl.Vector3{x_min, top_y, z_max}
+
+	draw_quad(b_nw, b_ne, b_se, b_sw, rl.DARKGRAY)
+	draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
+	draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
+	draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
+	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
+	draw_quad(t_nw, t_sw, t_se, t_ne, rl.LIGHTGRAY)
+}
+
+surface_height :: proc(renderer: ^Renderer, elevation: i32) -> f32 {
+	return FLAT_BASE_THICKNESS + f32(elevation) * renderer.transform.height_unit
 }
