@@ -35,12 +35,13 @@ end :: proc() {
 
 update_raylib_camera :: proc(camera: ^Camera) {
 	view_span := camera.view_span
+	fov := f32(35)
 	if view_span < 4 {
 		view_span = 4
 	}
 	camera.raylib.target = camera.target
-	camera.raylib.fovy = 45
-	half_fov_radians := f32(45) * 0.5 * math.PI / 180.0
+	camera.raylib.fovy = fov
+	half_fov_radians := fov * 0.5 * math.PI / 180.0
 	distance := view_span / 2 / math.tan(half_fov_radians) * 1.2
 
 	// Geometric!
