@@ -63,6 +63,52 @@ Move_Status :: enum u32 {
 	Level_Terminal          = 10,
 }
 
+JSON_Load_Status :: enum u32 {
+	Loaded        = 0,
+	Invalid_JSON  = 1,
+	Invalid_Level = 2,
+}
+
+JSON_Error_Code :: enum u32 {
+	Invalid_JSON         = 0,
+	Document_Too_Large   = 1,
+	Nesting_Too_Deep     = 2,
+	Root_Not_Object      = 3,
+	Missing_Member       = 4,
+	Unknown_Member       = 5,
+	Duplicate_Member     = 6,
+	Invalid_Member_Type  = 7,
+	Integer_Out_Of_Range = 8,
+	Invalid_Enum_Value   = 9,
+	Invalid_Format       = 10,
+	Unsupported_Version  = 11,
+	Invalid_Entity_ID    = 12,
+}
+
+Validation_Error_Code :: enum u32 {
+	Invalid_Dimensions            = 0,
+	Invalid_Coordinate_System     = 1,
+	Cell_Count_Mismatch           = 2,
+	Cell_Out_Of_Bounds            = 3,
+	Duplicate_Cell                = 4,
+	Invalid_Cell_Height           = 5,
+	Invalid_Ramp_Direction        = 6,
+	Invalid_Ramp_Endpoints        = 7,
+	Fixture_Out_Of_Bounds         = 8,
+	Fixture_On_Ramp               = 9,
+	Duplicate_Fixture             = 10,
+	Invalid_Fixture_Color         = 11,
+	Entity_Out_Of_Bounds          = 12,
+	Duplicate_Entity_ID           = 13,
+	Invalid_Entity_Kind           = 14,
+	Entity_Below_Surface          = 15,
+	Overlapping_Entities          = 16,
+	Player_Not_Top_Of_Stack       = 17,
+	Player_Count_Not_One          = 18,
+	Invalid_Teleporter_Occupancy  = 19,
+	Invalid_Entity_ID             = 20,
+}
+
 Event_Kind :: enum u32 {
 	Move_Blocked    = 0,
 	State_Rewound   = 1,
@@ -115,6 +161,19 @@ Entity :: struct {
 	bottom_half_steps: i32,
 }
 
+Validation_Error :: struct {
+	code:       Validation_Error_Code,
+	coordinate: Coordinate,
+	entity_id:  u64,
+}
+
+JSON_Error :: struct {
+	code:        JSON_Error_Code,
+	byte_offset: u32,
+	path:        cstring,
+	path_length: u32,
+}
+
 Resolved_State :: struct {
 	entities:                  ^Entity,
 	entity_count:              u32,
@@ -148,6 +207,27 @@ State_Result :: struct {
 	has_state:     u32,
 	state:         Snapshot,
 	owned_storage: rawptr,
+}
+
+// JSON_Load_Result owns every pointer reachable from it through owned_storage.
+// Do not copy it while owned; call dispose_json_load_result exactly once after use.
+JSON_Load_Result :: struct {
+	status:            JSON_Load_Status,
+	accepted:          u32,
+	json_error:        JSON_Error,
+	errors:            ^Validation_Error,
+	error_count:       u32,
+	has_initial_state: u32,
+	initial_state:     Resolved_State,
+	ticks:             ^Tick,
+	tick_count:        u32,
+	has_final_state:   u32,
+	final_state:       Resolved_State,
+	has_state:         u32,
+	state:             Snapshot,
+	has_outcome:       u32,
+	outcome:           Outcome,
+	owned_storage:     rawptr,
 }
 
 Event :: struct {
@@ -203,12 +283,21 @@ when size_of(rawptr) == 8 {
 	#assert(size_of(Cell) == 20)
 	#assert(size_of(Fixture) == 16)
 	#assert(size_of(Entity) == 24)
+	#assert(size_of(Validation_Error) == 24)
+	#assert(size_of(JSON_Error) == 24)
 	#assert(size_of(Resolved_State) == 64)
 	#assert(size_of(Level) == 56)
 	#assert(size_of(Snapshot) == 120)
 	#assert(size_of(State_Result) == 136)
 	#assert(offset_of(State_Result, state) == 8)
 	#assert(offset_of(State_Result, owned_storage) == 128)
+	#assert(size_of(JSON_Load_Result) == 336)
+	#assert(offset_of(JSON_Load_Result, json_error) == 8)
+	#assert(offset_of(JSON_Load_Result, initial_state) == 48)
+	#assert(offset_of(JSON_Load_Result, ticks) == 112)
+	#assert(offset_of(JSON_Load_Result, final_state) == 128)
+	#assert(offset_of(JSON_Load_Result, state) == 200)
+	#assert(offset_of(JSON_Load_Result, owned_storage) == 328)
 	#assert(size_of(Event) == 80)
 	#assert(size_of(Tick) == 88)
 	#assert(size_of(Move_Result) == 320)
