@@ -23,6 +23,7 @@ App_Mode :: enum {
 	LevelLost,
 	Playing,
 	LevelSelect,
+	Animating,
 }
 
 Game_State :: struct {
@@ -87,7 +88,7 @@ refresh_world_renderer :: proc(game: ^Game_State) -> bool {
 		return false
 	}
 
-	world.load_level(&game.world_renderer, &result.state.level)
+	world.load_level(&game.world_renderer, &result.state)
 	return true
 }
 
@@ -107,6 +108,10 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 		result.tick_count,
 		result.event_count,
 	)
+
+	if result.has_state != 0 {
+		world.update_player(&game.world_renderer, &result.state.resolved, direction)
+	}
 }
 
 update :: proc(game: ^Game_State) {
