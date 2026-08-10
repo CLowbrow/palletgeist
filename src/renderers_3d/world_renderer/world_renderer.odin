@@ -4,6 +4,7 @@ import rules "../../game_rules"
 import player "../player_renderer"
 import static_level "../static_level_renderer"
 import camera "../world_camera"
+import rl "vendor:raylib"
 
 Renderer :: struct {
 	camera:       camera.Camera,
@@ -24,11 +25,7 @@ unload :: proc(renderer: ^Renderer) {
 
 load_level :: proc(renderer: ^Renderer, snapshot: ^rules.Snapshot) {
 	static_level.load_level(&renderer.static_level, &snapshot.level)
-	player.load_state(
-		&renderer.player,
-		&snapshot.resolved,
-		renderer.static_level.transform,
-	)
+	player.load_state(&renderer.player, &snapshot.resolved, renderer.static_level.transform)
 	if bounds, ok := static_level.world_bounds(&renderer.static_level); ok {
 		camera.fit_bounds(&renderer.camera, bounds)
 	}
@@ -41,6 +38,7 @@ update_player :: proc(
 ) {
 	player.load_state(&renderer.player, state, renderer.static_level.transform)
 	player.face(&renderer.player, direction)
+	renderer.camera.player_target = rl.Vector3{0, 0, 0}
 }
 
 draw :: proc(renderer: ^Renderer) {

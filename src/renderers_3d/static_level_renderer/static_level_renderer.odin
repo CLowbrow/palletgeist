@@ -2,22 +2,17 @@
 package static_level_renderer
 
 import rules "../../game_rules"
+import helpers "../helpers"
 import "core:mem"
 import rl "vendor:raylib"
 
 FLAT_BASE_THICKNESS :: f32(0.12)
 
-Grid_Transform :: struct {
-	coordinates: rules.Coordinate_System,
-	tile_size:   f32,
-	height_unit: f32,
-}
-
 Renderer :: struct {
 	cells:     []rules.Cell,
 	width:     u32,
 	height:    u32,
-	transform: Grid_Transform,
+	transform: helpers.Grid_Transform,
 	loaded:    bool,
 }
 
@@ -53,27 +48,14 @@ load_level :: proc(renderer: ^Renderer, level: ^rules.Level) {
 	renderer.loaded = true
 }
 
-coordinate_to_world :: proc(
-	transform: ^Grid_Transform,
-	coordinate: rules.Coordinate,
-) -> rl.Vector3 {
-	dx := f32(coordinate.x - transform.coordinates.origin.x)
-	dy := f32(coordinate.y - transform.coordinates.origin.y)
-
-	x_sign: f32 = 1
-	z_sign: f32 = -1
-
-	return rl.Vector3{dx * x_sign * transform.tile_size, 0, dy * z_sign * transform.tile_size}
-}
-
 world_bounds :: proc(renderer: ^Renderer) -> (bounds: rl.BoundingBox, ok: bool) {
 	origin := renderer.transform.coordinates.origin
 	opposite := rules.Coordinate {
 		origin.x + i32(renderer.width) - 1,
 		origin.y + i32(renderer.height) - 1,
 	}
-	first := coordinate_to_world(&renderer.transform, origin)
-	last := coordinate_to_world(&renderer.transform, opposite)
+	first := helpers.coordinate_to_world(&renderer.transform, origin)
+	last := helpers.coordinate_to_world(&renderer.transform, opposite)
 	half_tile := renderer.transform.tile_size * 0.5
 
 	min_x, max_x := first.x, last.x
@@ -122,7 +104,7 @@ draw_quad :: proc(a, b, c, d: rl.Vector3, color: rl.Color) {
 }
 
 draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell) {
-	center := coordinate_to_world(&renderer.transform, cell.coordinate)
+	center := helpers.coordinate_to_world(&renderer.transform, cell.coordinate)
 	half := renderer.transform.tile_size * 0.5
 
 	x_min := center.x - half
@@ -172,7 +154,7 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell) {
 }
 
 draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell) {
-	center := coordinate_to_world(&renderer.transform, cell.coordinate)
+	center := helpers.coordinate_to_world(&renderer.transform, cell.coordinate)
 	half := renderer.transform.tile_size * 0.5
 	top_y := surface_height(renderer, cell.elevation)
 

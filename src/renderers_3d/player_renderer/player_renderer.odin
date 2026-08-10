@@ -2,6 +2,7 @@
 package player_renderer
 
 import rules "../../game_rules"
+import "../helpers"
 import static_level "../static_level_renderer"
 import "core:math"
 import "core:mem"
@@ -16,7 +17,7 @@ EYE_MATERIAL_INDEX :: 5
 Renderer :: struct {
 	model:             rl.Model,
 	model_bounds:      rl.BoundingBox,
-	transform:         static_level.Grid_Transform,
+	transform:         helpers.Grid_Transform,
 	coordinate:        rules.Coordinate,
 	bottom_half_steps: i32,
 	direction:         rules.Direction,
@@ -33,10 +34,7 @@ init :: proc(renderer: ^Renderer) {
 		// Material 5 is the GLB's "Eye" material after Raylib's default slot.
 		// Keep the model asset intact while applying the intended in-game eye color.
 		if EYE_MATERIAL_INDEX < int(renderer.model.materialCount) {
-			materials := mem.slice_ptr(
-				renderer.model.materials,
-				int(renderer.model.materialCount),
-			)
+			materials := mem.slice_ptr(renderer.model.materials, int(renderer.model.materialCount))
 			maps := mem.slice_ptr(materials[EYE_MATERIAL_INDEX].maps, rl.MAX_MATERIAL_MAPS)
 			maps[int(rl.MaterialMapIndex.ALBEDO)].color = rl.WHITE
 		}
@@ -57,7 +55,7 @@ unload :: proc(renderer: ^Renderer) {
 load_state :: proc(
 	renderer: ^Renderer,
 	state: ^rules.Resolved_State,
-	transform: static_level.Grid_Transform,
+	transform: helpers.Grid_Transform,
 ) {
 	renderer.transform = transform
 	renderer.player_loaded = false
@@ -109,7 +107,7 @@ draw :: proc(renderer: ^Renderer) {
 	rotated_center_x := model_center_x * cos_rotation + model_center_z * sin_rotation
 	rotated_center_z := -model_center_x * sin_rotation + model_center_z * cos_rotation
 
-	position := static_level.coordinate_to_world(&renderer.transform, renderer.coordinate)
+	position := helpers.coordinate_to_world(&renderer.transform, renderer.coordinate)
 	position.x -= rotated_center_x
 	position.z -= rotated_center_z
 	position.y =
