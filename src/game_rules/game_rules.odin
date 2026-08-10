@@ -67,12 +67,14 @@ load_level_json_data :: proc(
 	if engine != nil {
 		handle = engine.handle
 	}
-	return Call_Status(game_rules_engine_load_level_json_data(
-		handle,
-		raw_data(level_json),
-		u32(len(level_json)),
-		result,
-	))
+	return Call_Status(
+		game_rules_engine_load_level_json_data(
+			handle,
+			raw_data(level_json),
+			u32(len(level_json)),
+			result,
+		),
+	)
 }
 
 dispose_json_load_result :: proc(result: ^JSON_Load_Result) {

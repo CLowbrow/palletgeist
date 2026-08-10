@@ -53,13 +53,6 @@ main :: proc() {
 		engine = engine,
 	}
 
-	response, ok := rules.load_level_json(&game.engine, EMBEDDED_LEVELS[0].data)
-	if !ok {
-		fmt.eprintln("Could not load level")
-		return
-	}
-	delete(response)
-
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 	rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
@@ -67,6 +60,12 @@ main :: proc() {
 
 	world.init(&game.world_renderer)
 	defer world.unload(&game.world_renderer)
+
+	if !start_level(&game, 0) {
+		fmt.eprintln("Could not load initial level")
+		return
+	}
+
 	if !refresh_world_renderer(&game) {
 		fmt.eprintln("Could not get initial level state")
 		return
@@ -153,20 +152,10 @@ draw :: proc(game: ^Game_State) {
 		}
 	} else if game.mode == .LevelSelect {
 		if selected_level := menus.level_select(&EMBEDDED_LEVELS); selected_level >= 0 {
-			response, ok := rules.load_level_json(
-				&game.engine,
-				EMBEDDED_LEVELS[selected_level].data,
-			)
-			delete(response)
-			if !ok {
-				fmt.eprintln("Could not load level")
-				return
+			if start_level(game, selected_level) {
+				game.mode = .Playing
 			}
-			if !refresh_world_renderer(game) {
-				fmt.eprintln("Could not get level state")
-				return
-			}
-			game.mode = .Playing
+
 		}
 	}
 
