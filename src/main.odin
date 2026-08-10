@@ -66,29 +66,12 @@ main :: proc() {
 		return
 	}
 
-	if !refresh_world_renderer(&game) {
-		fmt.eprintln("Could not get initial level state")
-		return
-	}
-
 	rl.SetTargetFPS(60)
 
 	for !rl.WindowShouldClose() {
 		update(&game)
 		draw(&game)
 	}
-}
-
-refresh_world_renderer :: proc(game: ^Game_State) -> bool {
-	result: rules.State_Result
-	call := rules.get_state(&game.engine, &result)
-	defer rules.dispose_state_result(&result)
-	if call != .Ok || result.has_state == 0 {
-		return false
-	}
-
-	world.load_level(&game.world_renderer, &result.state)
-	return true
 }
 
 apply_move :: proc(game: ^Game_State, direction: rules.Direction) {

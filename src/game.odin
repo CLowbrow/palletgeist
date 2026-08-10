@@ -6,6 +6,10 @@ import world "renderers_3d/world_renderer"
 start_level :: proc(game: ^Game_State, level_index: int) -> bool {
 	// calling into c jank
 	result: rules.JSON_Load_Result
+	if len(EMBEDDED_LEVELS) <= level_index {
+		fmt.eprintln("level select out of bounds")
+		return false
+	}
 	status := rules.load_level_json_data(&game.engine, EMBEDDED_LEVELS[level_index].data, &result)
 	defer rules.dispose_json_load_result(&result)
 
