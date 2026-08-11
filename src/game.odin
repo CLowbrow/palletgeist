@@ -1,5 +1,6 @@
 package main
 import "core:fmt"
+import model "game_state"
 import rules "game_rules"
 import world "renderers_3d/world_renderer"
 
@@ -28,7 +29,12 @@ start_level :: proc(game: ^Game_State, level_index: int) -> bool {
 		return false
 	}
 
-	world.load_level(&game.world_renderer, &result.state)
+	if !model.replace_from_snapshot(&game.world_state, &result.state) {
+		fmt.eprintln("Loaded level returned an invalid state")
+		return false
+	}
+
+	world.load_level(&game.world_renderer, &result.state.level, &game.world_state)
 
 	return true
 }

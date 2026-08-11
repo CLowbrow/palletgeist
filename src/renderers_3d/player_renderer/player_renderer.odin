@@ -1,6 +1,7 @@
 // Package player_renderer draws the player entity using the Gorker model.
 package player_renderer
 
+import model "../../game_state"
 import rules "../../game_rules"
 import "../helpers"
 import static_level "../static_level_renderer"
@@ -15,14 +16,10 @@ MODEL_FOOTPRINT_RATIO :: f32(0.72)
 EYE_MATERIAL_INDEX :: 5
 
 Renderer :: struct {
-	model:             rl.Model,
-	model_bounds:      rl.BoundingBox,
-	transform:         helpers.Grid_Transform,
-	coordinate:        rules.Coordinate,
-	bottom_half_steps: i32,
-	direction:         rules.Direction,
-	model_loaded:      bool,
-	player_loaded:     bool,
+	model:        rl.Model,
+	model_bounds: rl.BoundingBox,
+	direction:    rules.Direction,
+	model_loaded: bool,
 }
 
 init :: proc(renderer: ^Renderer) {
@@ -49,54 +46,37 @@ unload :: proc(renderer: ^Renderer) {
 		rl.UnloadModel(renderer.model)
 	}
 	renderer.model_loaded = false
-	renderer.player_loaded = false
-}
-
-load_state :: proc(
-	renderer: ^Renderer,
-	state: ^rules.Resolved_State,
-	transform: helpers.Grid_Transform,
-) {
-	renderer.transform = transform
-	renderer.player_loaded = false
-
-	if state.entity_count == 0 || state.entities == nil {
-		return
-	}
-
-	entities := mem.slice_ptr(state.entities, int(state.entity_count))
-	for entity in entities {
-		if entity.kind != .Player {
-			continue
-		}
-
-		renderer.coordinate = entity.coordinate
-		renderer.bottom_half_steps = entity.bottom_half_steps
-		renderer.player_loaded = true
-		return
-	}
 }
 
 face :: proc(renderer: ^Renderer, direction: rules.Direction) {
 	renderer.direction = direction
 }
 
-camera_target :: proc(renderer: ^Renderer) -> (target: rl.Vector3, ok: bool) {
-	if !renderer.player_loaded {
+camera_target :: proc(
+	state: ^model.World_State,
+	transform: ^helpers.Grid_Transform,
+) -> (target: rl.Vector3, ok: bool) {
+	entity, player_loaded := model.player(state)
+	if !player_loaded {
 		return
 	}
 
-	target = helpers.coordinate_to_world(&renderer.transform, renderer.coordinate)
+	target = helpers.coordinate_to_world(transform, entity.coordinate)
 	target.y =
 		static_level.FLAT_BASE_THICKNESS +
-		f32(renderer.bottom_half_steps) * renderer.transform.height_unit * 0.5 +
-		renderer.transform.height_unit * 0.5
+		f32(entity.bottom_half_steps) * transform.height_unit * 0.5 +
+		transform.height_unit * 0.5
 	ok = true
 	return
 }
 
-draw :: proc(renderer: ^Renderer) {
-	if !renderer.model_loaded || !renderer.player_loaded {
+draw :: proc(
+	renderer: ^Renderer,
+	state: ^model.World_State,
+	transform: ^helpers.Grid_Transform,
+) {
+	entity, player_loaded := model.player(state)
+	if !renderer.model_loaded || !player_loaded {
 		return
 	}
 
@@ -108,7 +88,7 @@ draw :: proc(renderer: ^Renderer) {
 		return
 	}
 
-	scale := renderer.transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
+	scale := transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
 	rotation := direction_rotation(renderer.direction)
 	model_center_x := (bounds.min.x + bounds.max.x) * 0.5 * scale
 	model_center_z := (bounds.min.z + bounds.max.z) * 0.5 * scale
@@ -121,12 +101,12 @@ draw :: proc(renderer: ^Renderer) {
 	rotated_center_x := model_center_x * cos_rotation + model_center_z * sin_rotation
 	rotated_center_z := -model_center_x * sin_rotation + model_center_z * cos_rotation
 
-	position := helpers.coordinate_to_world(&renderer.transform, renderer.coordinate)
+	position := helpers.coordinate_to_world(transform, entity.coordinate)
 	position.x -= rotated_center_x
 	position.z -= rotated_center_z
 	position.y =
 		static_level.FLAT_BASE_THICKNESS +
-		f32(renderer.bottom_half_steps) * renderer.transform.height_unit * 0.5 -
+		f32(entity.bottom_half_steps) * transform.height_unit * 0.5 -
 		bounds.min.y * scale
 
 	// Gorker contains mirrored meshes (including the second eye), and all of its

@@ -4,6 +4,7 @@ import "core:fmt"
 import rl "vendor:raylib"
 
 import "core:log"
+import model "game_state"
 import rules "game_rules"
 import menus "menus"
 import helpers "renderers_3d/helpers"
@@ -19,6 +20,7 @@ EMBEDDED_LEVELS := #load_directory("../levels")
 
 Game_State :: struct {
 	engine:         rules.Engine,
+	world_state:    model.World_State,
 	world_renderer: world.Renderer,
 	mode:           helpers.UI_Mode,
 }
@@ -51,6 +53,7 @@ main :: proc() {
 
 	world.init(&game.world_renderer)
 	defer world.unload(&game.world_renderer)
+	defer model.unload(&game.world_state)
 
 	if !start_level(&game, 0) {
 		fmt.eprintln("Could not load initial level")
@@ -83,7 +86,11 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 	)
 
 	if result.has_state != 0 {
-		world.update_player(&game.world_renderer, &result.state.resolved, direction)
+		if !model.replace_from_resolved(&game.world_state, &result.state.resolved) {
+			log.error("Rules move returned an invalid state")
+			return
+		}
+		world.update_player(&game.world_renderer, &game.world_state, direction)
 	}
 }
 
@@ -107,7 +114,7 @@ draw :: proc(game: ^Game_State) {
 	defer rl.EndDrawing()
 
 	rl.ClearBackground(rl.Color{20, 22, 28, 255})
-	world.draw(&game.world_renderer, game.mode)
+	world.draw(&game.world_renderer, &game.world_state, game.mode)
 
 	if game.mode == .MainMenu {
 		if game.mode == .MainMenu {

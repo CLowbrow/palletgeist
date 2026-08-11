@@ -1,5 +1,6 @@
 package world_renderer
 
+import model "../../game_state"
 import rules "../../game_rules"
 import helpers "../helpers"
 import player "../player_renderer"
@@ -23,10 +24,13 @@ unload :: proc(renderer: ^Renderer) {
 	static_level.unload(&renderer.static_level)
 }
 
-load_level :: proc(renderer: ^Renderer, snapshot: ^rules.Snapshot) {
-	static_level.load_level(&renderer.static_level, &snapshot.level)
-	player.load_state(&renderer.player, &snapshot.resolved, renderer.static_level.transform)
-	update_player_target(renderer)
+load_level :: proc(
+	renderer: ^Renderer,
+	level: ^rules.Level,
+	state: ^model.World_State,
+) {
+	static_level.load_level(&renderer.static_level, level)
+	update_player_target(renderer, state)
 	if bounds, ok := static_level.world_bounds(&renderer.static_level); ok {
 		camera.fit_bounds(&renderer.camera, bounds)
 	}
@@ -34,25 +38,28 @@ load_level :: proc(renderer: ^Renderer, snapshot: ^rules.Snapshot) {
 
 update_player :: proc(
 	renderer: ^Renderer,
-	state: ^rules.Resolved_State,
+	state: ^model.World_State,
 	direction: rules.Direction,
 ) {
-	player.load_state(&renderer.player, state, renderer.static_level.transform)
 	player.face(&renderer.player, direction)
-	update_player_target(renderer)
+	update_player_target(renderer, state)
 }
 
-draw :: proc(renderer: ^Renderer, mode: helpers.UI_Mode) {
+draw :: proc(
+	renderer: ^Renderer,
+	state: ^model.World_State,
+	mode: helpers.UI_Mode,
+) {
 	camera.update_position(&renderer.camera, mode)
 	camera.begin(&renderer.camera)
 	defer camera.end()
 
 	static_level.draw(&renderer.static_level)
-	player.draw(&renderer.player)
+	player.draw(&renderer.player, state, &renderer.static_level.transform)
 }
 
-update_player_target :: proc(renderer: ^Renderer) {
-	if target, ok := player.camera_target(&renderer.player); ok {
+update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {
+	if target, ok := player.camera_target(state, &renderer.static_level.transform); ok {
 		renderer.camera.player_target = target
 	}
 }
