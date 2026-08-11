@@ -6,6 +6,7 @@ import rl "vendor:raylib"
 import "core:log"
 import rules "game_rules"
 import menus "menus"
+import helpers "renderers_3d/helpers"
 import world "renderers_3d/world_renderer"
 
 WINDOW_WIDTH :: 1280
@@ -16,20 +17,10 @@ MIN_WINDOW_HEIGHT :: 360
 
 EMBEDDED_LEVELS := #load_directory("../levels")
 
-App_Mode :: enum {
-	MainMenu,
-	PauseMenu,
-	LevelWon,
-	LevelLost,
-	Playing,
-	LevelSelect,
-	Animating,
-}
-
 Game_State :: struct {
 	engine:         rules.Engine,
 	world_renderer: world.Renderer,
-	mode:           App_Mode,
+	mode:           helpers.UI_Mode,
 }
 
 main :: proc() {
@@ -49,7 +40,7 @@ main :: proc() {
 	}
 
 	game := Game_State {
-		mode   = App_Mode.MainMenu,
+		mode   = helpers.UI_Mode.MainMenu,
 		engine = engine,
 	}
 
@@ -98,7 +89,7 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 
 update :: proc(game: ^Game_State) {
 	// Handle input
-	if game.mode == App_Mode.Playing {
+	if game.mode == helpers.UI_Mode.Playing {
 		if rl.IsKeyPressed(.LEFT) {
 			apply_move(game, .West)
 		} else if rl.IsKeyPressed(.RIGHT) {
@@ -116,6 +107,7 @@ draw :: proc(game: ^Game_State) {
 	defer rl.EndDrawing()
 
 	rl.ClearBackground(rl.Color{20, 22, 28, 255})
+	world.draw(&game.world_renderer, game.mode)
 
 	if game.mode == .MainMenu {
 		if game.mode == .MainMenu {
@@ -150,7 +142,5 @@ draw :: proc(game: ^Game_State) {
 		}
 	}
 
-	// We always draw the level
-	world.draw(&game.world_renderer)
 	//rl.DrawFPS(50, WINDOW_HEIGHT - 38)
 }

@@ -2,20 +2,18 @@
 package world_camera
 
 import "core:math"
-import "core:slice"
+import helpers "../helpers"
 import rl "vendor:raylib"
 
-Camera_Mode :: enum {
-	Playing,
-	Menu,
-}
+PLAYER_VIEW_SPAN :: f32(2.5)
+MIN_LEVEL_VIEW_SPAN :: f32(4)
+FOV :: f32(35)
 
 Camera :: struct {
 	raylib:          rl.Camera3D,
 	level_target:    rl.Vector3,
 	level_view_span: f32,
 	player_target:   rl.Vector3,
-	camera_mode:     Camera_Mode,
 }
 
 init :: proc(camera: ^Camera) {
@@ -41,14 +39,17 @@ end :: proc() {
 }
 
 focus_level :: proc(camera: ^Camera) {
-	view_span := camera.level_view_span
-	fov := f32(35)
-	if view_span < 4 {
-		view_span = 4
-	}
-	camera.raylib.target = camera.level_target
-	camera.raylib.fovy = fov
-	half_fov_radians := fov * 0.5 * math.PI / 180.0
+	focus(camera, camera.level_target, max(camera.level_view_span, MIN_LEVEL_VIEW_SPAN))
+}
+
+focus_player :: proc(camera: ^Camera) {
+	focus(camera, camera.player_target, PLAYER_VIEW_SPAN)
+}
+
+focus :: proc(camera: ^Camera, target: rl.Vector3, view_span: f32) {
+	camera.raylib.target = target
+	camera.raylib.fovy = FOV
+	half_fov_radians := FOV * 0.5 * math.PI / 180.0
 	distance := view_span / 2 / math.tan(half_fov_radians) * 1.2
 
 	// Geometric!
@@ -57,18 +58,14 @@ focus_level :: proc(camera: ^Camera) {
 	z_offset := distance / sqrt_5
 
 	camera.raylib.position = rl.Vector3 {
-		camera.level_target.x,
-		camera.level_target.y + y_offset,
-		camera.level_target.z + z_offset,
+		target.x,
+		target.y + y_offset,
+		target.z + z_offset,
 	}
 }
 
-focus_player :: proc(camera: ^Camera) {
-
-}
-
-update_position :: proc(camera: ^Camera) {
-	if camera.camera_mode == .Playing {
+update_position :: proc(camera: ^Camera, mode: helpers.UI_Mode) {
+	if mode == .Playing {
 		focus_level(camera)
 	} else {
 		focus_player(camera)

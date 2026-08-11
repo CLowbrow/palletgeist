@@ -4,6 +4,16 @@ import rules "../../game_rules"
 import "core:mem"
 import rl "vendor:raylib"
 
+UI_Mode :: enum {
+	MainMenu,
+	PauseMenu,
+	LevelWon,
+	LevelLost,
+	Playing,
+	LevelSelect,
+	Animating,
+}
+
 Grid_Transform :: struct {
 	coordinates: rules.Coordinate_System,
 	tile_size:   f32,

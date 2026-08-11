@@ -81,6 +81,20 @@ face :: proc(renderer: ^Renderer, direction: rules.Direction) {
 	renderer.direction = direction
 }
 
+camera_target :: proc(renderer: ^Renderer) -> (target: rl.Vector3, ok: bool) {
+	if !renderer.player_loaded {
+		return
+	}
+
+	target = helpers.coordinate_to_world(&renderer.transform, renderer.coordinate)
+	target.y =
+		static_level.FLAT_BASE_THICKNESS +
+		f32(renderer.bottom_half_steps) * renderer.transform.height_unit * 0.5 +
+		renderer.transform.height_unit * 0.5
+	ok = true
+	return
+}
+
 draw :: proc(renderer: ^Renderer) {
 	if !renderer.model_loaded || !renderer.player_loaded {
 		return
