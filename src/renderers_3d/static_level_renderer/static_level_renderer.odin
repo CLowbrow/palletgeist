@@ -1,12 +1,10 @@
 // Package static_level_renderer renders the non-moving level geometry: floors and ramps.
 package static_level_renderer
 
-import model "../../game_state"
 import rules "../../game_rules"
+import model "../../game_state"
 import helpers "../helpers"
 import rl "vendor:raylib"
-
-FLAT_BASE_THICKNESS :: f32(0.12)
 
 Renderer :: struct {
 	transform: helpers.Grid_Transform,
@@ -30,7 +28,10 @@ load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
 world_bounds :: proc(
 	renderer: ^Renderer,
 	state: ^model.World_State,
-) -> (bounds: rl.BoundingBox, ok: bool) {
+) -> (
+	bounds: rl.BoundingBox,
+	ok: bool,
+) {
 	current, loaded := model.snapshot(state)
 	if !loaded || current.level.width == 0 || current.level.height == 0 {
 		return
@@ -38,10 +39,7 @@ world_bounds :: proc(
 	level := &current.level
 
 	origin := renderer.transform.coordinates.origin
-	opposite := rules.Coordinate {
-		origin.x + i32(level.width) - 1,
-		origin.y + i32(level.height) - 1,
-	}
+	opposite := rules.Coordinate{origin.x + i32(level.width) - 1, origin.y + i32(level.height) - 1}
 	first := helpers.coordinate_to_world(&renderer.transform, origin)
 	last := helpers.coordinate_to_world(&renderer.transform, opposite)
 	half_tile := renderer.transform.tile_size * 0.5
@@ -74,13 +72,8 @@ world_bounds :: proc(
 	return
 }
 
-draw :: proc(renderer: ^Renderer, state: ^model.World_State) {
-	current, loaded := model.snapshot(state)
-	if !loaded {
-		return
-	}
-
-	for cell in rules.cells_view(&current.level) {
+draw :: proc(renderer: ^Renderer, state: ^rules.Level) {
+	for cell in rules.cells_view(state) {
 		switch cell.kind {
 		case .Flat:
 			draw_flat(renderer, cell)
@@ -176,5 +169,5 @@ draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell) {
 }
 
 surface_height :: proc(renderer: ^Renderer, elevation: i32) -> f32 {
-	return FLAT_BASE_THICKNESS + f32(elevation) * renderer.transform.height_unit
+	return helpers.BASE_THICKNESS + f32(elevation) * renderer.transform.height_unit
 }

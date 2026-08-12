@@ -1,10 +1,9 @@
 // Package player_renderer draws the player entity using the Gorker model.
 package player_renderer
 
-import model "../../game_state"
 import rules "../../game_rules"
+import model "../../game_state"
 import "../helpers"
-import static_level "../static_level_renderer"
 import "core:math"
 import "core:mem"
 import rl "vendor:raylib"
@@ -55,7 +54,10 @@ face :: proc(renderer: ^Renderer, direction: rules.Direction) {
 camera_target :: proc(
 	state: ^model.World_State,
 	transform: ^helpers.Grid_Transform,
-) -> (target: rl.Vector3, ok: bool) {
+) -> (
+	target: rl.Vector3,
+	ok: bool,
+) {
 	entity, player_loaded := model.player(state)
 	if !player_loaded {
 		return
@@ -63,23 +65,14 @@ camera_target :: proc(
 
 	target = helpers.coordinate_to_world(transform, entity.coordinate)
 	target.y =
-		static_level.FLAT_BASE_THICKNESS +
+		helpers.BASE_THICKNESS +
 		f32(entity.bottom_half_steps) * transform.height_unit * 0.5 +
 		transform.height_unit * 0.5
 	ok = true
 	return
 }
 
-draw :: proc(
-	renderer: ^Renderer,
-	state: ^model.World_State,
-	transform: ^helpers.Grid_Transform,
-) {
-	entity, player_loaded := model.player(state)
-	if !renderer.model_loaded || !player_loaded {
-		return
-	}
-
+draw :: proc(renderer: ^Renderer, player: ^rules.Entity, transform: ^helpers.Grid_Transform) {
 	bounds := renderer.model_bounds
 	model_width := bounds.max.x - bounds.min.x
 	model_depth := bounds.max.z - bounds.min.z
@@ -101,12 +94,12 @@ draw :: proc(
 	rotated_center_x := model_center_x * cos_rotation + model_center_z * sin_rotation
 	rotated_center_z := -model_center_x * sin_rotation + model_center_z * cos_rotation
 
-	position := helpers.coordinate_to_world(transform, entity.coordinate)
+	position := helpers.coordinate_to_world(transform, player.coordinate)
 	position.x -= rotated_center_x
 	position.z -= rotated_center_z
 	position.y =
-		static_level.FLAT_BASE_THICKNESS +
-		f32(entity.bottom_half_steps) * transform.height_unit * 0.5 -
+		helpers.BASE_THICKNESS +
+		f32(player.bottom_half_steps) * transform.height_unit * 0.5 -
 		bounds.min.y * scale
 
 	// Gorker contains mirrored meshes (including the second eye), and all of its

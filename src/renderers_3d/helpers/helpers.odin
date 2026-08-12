@@ -4,6 +4,8 @@ import rules "../../game_rules"
 import "core:mem"
 import rl "vendor:raylib"
 
+BASE_THICKNESS :: f32(0.12)
+
 UI_Mode :: enum {
 	MainMenu,
 	PauseMenu,
@@ -12,6 +14,12 @@ UI_Mode :: enum {
 	Playing,
 	LevelSelect,
 	Animating,
+}
+
+SortedObjects :: struct {
+	player:  rules.Entity,
+	boxes:   [dynamic]rules.Entity,
+	barrels: [dynamic]rules.Entity,
 }
 
 Grid_Transform :: struct {
