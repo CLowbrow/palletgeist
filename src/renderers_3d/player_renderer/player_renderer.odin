@@ -4,15 +4,11 @@ package player_renderer
 import rules "../../game_rules"
 import model "../../game_state"
 import "../helpers"
-import "core:math"
-import "core:mem"
 import rl "vendor:raylib"
-import rlgl "vendor:raylib/rlgl"
 
 MODEL_PATH :: "assets/Gorker.glb"
 MODEL_FOOTPRINT_RATIO :: f32(0.72)
-// Raylib reserves material slot 0 for its default, shifting glTF materials by one.
-EYE_MATERIAL_INDEX :: 5
+DEFAULT_DIRECTION :: rules.Direction.South
 
 Renderer :: struct {
 	model:        rl.Model,
@@ -26,18 +22,9 @@ init :: proc(renderer: ^Renderer) {
 	renderer.model_loaded = rl.IsModelValid(renderer.model)
 	if renderer.model_loaded {
 		renderer.model_bounds = rl.GetModelBoundingBox(renderer.model)
-
-		// Material 5 is the GLB's "Eye" material after Raylib's default slot.
-		// Keep the model asset intact while applying the intended in-game eye color.
-		if EYE_MATERIAL_INDEX < int(renderer.model.materialCount) {
-			materials := mem.slice_ptr(renderer.model.materials, int(renderer.model.materialCount))
-			maps := mem.slice_ptr(materials[EYE_MATERIAL_INDEX].maps, rl.MAX_MATERIAL_MAPS)
-			maps[int(rl.MaterialMapIndex.ALBEDO)].color = rl.WHITE
-		}
 	}
 
-	// Player unrotated model faces east (positive X). TODO: fix it
-	renderer.direction = .East
+	renderer.direction = DEFAULT_DIRECTION
 }
 
 unload :: proc(renderer: ^Renderer) {
@@ -83,29 +70,12 @@ draw :: proc(renderer: ^Renderer, player: ^rules.Entity, transform: ^helpers.Gri
 
 	scale := transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
 	rotation := direction_rotation(renderer.direction)
-	model_center_x := (bounds.min.x + bounds.max.x) * 0.5 * scale
-	model_center_z := (bounds.min.z + bounds.max.z) * 0.5 * scale
-
-	// DrawModelEx rotates around the model's exported origin. Rotate the offset from
-	// that origin to the footprint center as well, so every facing stays centered.
-	radians := rotation * math.PI / 180
-	sin_rotation := f32(math.sin(radians))
-	cos_rotation := f32(math.cos(radians))
-	rotated_center_x := model_center_x * cos_rotation + model_center_z * sin_rotation
-	rotated_center_z := -model_center_x * sin_rotation + model_center_z * cos_rotation
 
 	position := helpers.coordinate_to_world(transform, player.coordinate)
-	position.x -= rotated_center_x
-	position.z -= rotated_center_z
 	position.y =
 		helpers.BASE_THICKNESS +
 		f32(player.bottom_half_steps) * transform.height_unit * 0.5 -
 		bounds.min.y * scale
-
-	// Gorker contains mirrored meshes (including the second eye), and all of its
-	// glTF materials are marked double-sided. Raylib does not apply that flag.
-	rlgl.DisableBackfaceCulling()
-	defer rlgl.EnableBackfaceCulling()
 
 	rl.DrawModelEx(
 		renderer.model,
@@ -120,13 +90,13 @@ draw :: proc(renderer: ^Renderer, player: ^rules.Entity, transform: ^helpers.Gri
 direction_rotation :: proc(direction: rules.Direction) -> f32 {
 	switch direction {
 	case .North:
-		return 90
-	case .East:
 		return 0
-	case .South:
+	case .East:
 		return -90
-	case .West:
+	case .South:
 		return 180
+	case .West:
+		return 90
 	}
 
 	return 0

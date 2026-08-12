@@ -28,6 +28,7 @@ unload :: proc(renderer: ^Renderer) {
 
 load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
 	static_level.load_level(&renderer.static_level, state)
+	player.face(&renderer.player, player.DEFAULT_DIRECTION)
 	update_player_target(renderer, state)
 	if bounds, ok := static_level.world_bounds(&renderer.static_level, state); ok {
 		camera.fit_bounds(&renderer.camera, bounds)
