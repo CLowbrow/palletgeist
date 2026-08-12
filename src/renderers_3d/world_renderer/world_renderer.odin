@@ -12,8 +12,7 @@ Renderer :: struct {
 	camera:       camera.Camera,
 	static_level: static_level.Renderer,
 	player:       player.Renderer,
-	boxes:        object.Box_Renderer,
-	barrels:      object.Barrel_Renderer,
+	objects:      object.Renderer,
 }
 
 init :: proc(renderer: ^Renderer) {
@@ -40,21 +39,6 @@ update_player :: proc(renderer: ^Renderer, state: ^model.World_State, direction:
 	update_player_target(renderer, state)
 }
 
-get_objects :: proc(snapshot: ^rules.Snapshot) -> helpers.SortedObjects {
-	objects := helpers.SortedObjects{}
-
-	for entity in rules.entities_view(&snapshot.resolved) {
-		if (entity.kind == .Player) {
-			objects.player = entity
-		} else if (entity.kind == .Box) {
-			append(&objects.boxes, entity)
-		} else if (entity.kind == .Barrel) {
-			append(&objects.barrels, entity)
-		}
-	}
-	return objects
-}
-
 draw :: proc(renderer: ^Renderer, state: ^model.World_State, mode: helpers.UI_Mode) {
 	snapshot, loaded := model.snapshot(state)
 	if !loaded {
@@ -65,17 +49,11 @@ draw :: proc(renderer: ^Renderer, state: ^model.World_State, mode: helpers.UI_Mo
 	camera.begin(&renderer.camera)
 	defer camera.end()
 
-	// TODO: add this to renderer to stop allocate/free every frame
-	objects := get_objects(snapshot)
-	defer {
-		delete(objects.boxes)
-		delete(objects.barrels)
-	}
-
 	static_level.draw(&renderer.static_level, &snapshot.level)
-	player.draw(&renderer.player, &objects.player, &renderer.static_level.transform)
-	object.draw_boxes(&renderer.boxes, &objects.boxes, &renderer.static_level.transform)
-	object.draw_barrels(&renderer.barrels, &objects.barrels, &renderer.static_level.transform)
+	if player_entity, ok := model.player(state); ok {
+		player.draw(&renderer.player, &player_entity, &renderer.static_level.transform)
+	}
+	object.draw(&renderer.objects, &snapshot.resolved, &renderer.static_level.transform)
 }
 
 update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {
