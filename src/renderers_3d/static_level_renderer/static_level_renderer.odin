@@ -5,6 +5,7 @@ import rules "../../game_rules"
 import model "../../game_state"
 import helpers "../helpers"
 import rl "vendor:raylib"
+import rlgl "vendor:raylib/rlgl"
 
 Renderer :: struct {
 	transform: helpers.Grid_Transform,
@@ -85,8 +86,29 @@ draw :: proc(renderer: ^Renderer, state: ^rules.Level) {
 
 draw_quad :: proc(a, b, c, d: rl.Vector3, color: rl.Color) {
 	// Counter-clockwise when viewed from outside the solid.
-	rl.DrawTriangle3D(a, b, c, color)
-	rl.DrawTriangle3D(a, c, d, color)
+	edge_ab := b - a
+	edge_ac := c - a
+	normal := rl.Vector3Normalize(rl.Vector3CrossProduct(edge_ab, edge_ac))
+
+	rlgl.Begin(rlgl.TRIANGLES)
+	rlgl.Color4ub(color.r, color.g, color.b, color.a)
+	rlgl.Normal3f(normal.x, normal.y, normal.z)
+
+	// Each face currently receives the complete texture. These coordinates can
+	// later be changed to world-space tiling or atlas coordinates per face.
+	draw_vertex(a, rl.Vector2{0, 0})
+	draw_vertex(b, rl.Vector2{0, 1})
+	draw_vertex(c, rl.Vector2{1, 1})
+	draw_vertex(a, rl.Vector2{0, 0})
+	draw_vertex(c, rl.Vector2{1, 1})
+	draw_vertex(d, rl.Vector2{1, 0})
+
+	rlgl.End()
+}
+
+draw_vertex :: proc(position: rl.Vector3, texcoord: rl.Vector2) {
+	rlgl.TexCoord2f(texcoord.x, texcoord.y)
+	rlgl.Vertex3f(position.x, position.y, position.z)
 }
 
 draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell) {
