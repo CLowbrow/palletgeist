@@ -1,19 +1,15 @@
 // Package static_level_renderer renders the non-moving level geometry: floors and ramps.
 package static_level_renderer
 
+import model "../../game_state"
 import rules "../../game_rules"
 import helpers "../helpers"
-import "core:mem"
 import rl "vendor:raylib"
 
 FLAT_BASE_THICKNESS :: f32(0.12)
 
 Renderer :: struct {
-	cells:     []rules.Cell,
-	width:     u32,
-	height:    u32,
 	transform: helpers.Grid_Transform,
-	loaded:    bool,
 }
 
 init :: proc(renderer: ^Renderer) {
@@ -22,37 +18,29 @@ init :: proc(renderer: ^Renderer) {
 }
 
 unload :: proc(renderer: ^Renderer) {
-	if renderer.cells != nil {
-		delete(renderer.cells)
-	}
-	renderer.cells = nil
-	renderer.width = 0
-	renderer.height = 0
-	renderer.loaded = false
+	renderer.transform = {}
 }
 
-load_level :: proc(renderer: ^Renderer, level: ^rules.Level) {
-	cell_count := int(level.cell_count)
-	new_cells := make([]rules.Cell, cell_count)
-	if cell_count > 0 {
-		incoming_cells := mem.slice_ptr(level.cells, cell_count)
-		copy(new_cells, incoming_cells)
+load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
+	if current, ok := model.snapshot(state); ok {
+		renderer.transform.coordinates = current.level.coordinates
 	}
-
-	delete(renderer.cells)
-	renderer.cells = new_cells
-
-	renderer.width = level.width
-	renderer.height = level.height
-	renderer.transform.coordinates = level.coordinates
-	renderer.loaded = true
 }
 
-world_bounds :: proc(renderer: ^Renderer) -> (bounds: rl.BoundingBox, ok: bool) {
+world_bounds :: proc(
+	renderer: ^Renderer,
+	state: ^model.World_State,
+) -> (bounds: rl.BoundingBox, ok: bool) {
+	current, loaded := model.snapshot(state)
+	if !loaded || current.level.width == 0 || current.level.height == 0 {
+		return
+	}
+	level := &current.level
+
 	origin := renderer.transform.coordinates.origin
 	opposite := rules.Coordinate {
-		origin.x + i32(renderer.width) - 1,
-		origin.y + i32(renderer.height) - 1,
+		origin.x + i32(level.width) - 1,
+		origin.y + i32(level.height) - 1,
 	}
 	first := helpers.coordinate_to_world(&renderer.transform, origin)
 	last := helpers.coordinate_to_world(&renderer.transform, opposite)
@@ -68,7 +56,7 @@ world_bounds :: proc(renderer: ^Renderer) -> (bounds: rl.BoundingBox, ok: bool) 
 	}
 
 	max_y: f32
-	for cell in renderer.cells {
+	for cell in rules.cells_view(level) {
 		height := surface_height(renderer, cell.elevation)
 		if cell.kind == .Ramp {
 			height += renderer.transform.height_unit
@@ -86,8 +74,13 @@ world_bounds :: proc(renderer: ^Renderer) -> (bounds: rl.BoundingBox, ok: bool) 
 	return
 }
 
-draw :: proc(renderer: ^Renderer) {
-	for cell in renderer.cells {
+draw :: proc(renderer: ^Renderer, state: ^model.World_State) {
+	current, loaded := model.snapshot(state)
+	if !loaded {
+		return
+	}
+
+	for cell in rules.cells_view(&current.level) {
 		switch cell.kind {
 		case .Flat:
 			draw_flat(renderer, cell)
@@ -174,7 +167,8 @@ draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell) {
 	t_sw := rl.Vector3{x_min, top_y, z_max}
 
 	draw_quad(b_nw, b_ne, b_se, b_sw, rl.DARKGRAY)
-	draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
+	// TODO: Can't see this one but put it back if we ever rotate
+	// draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
 	draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
 	draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
 	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West

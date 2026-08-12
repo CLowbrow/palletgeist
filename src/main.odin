@@ -86,8 +86,8 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 	)
 
 	if result.has_state != 0 {
-		if !model.replace_from_resolved(&game.world_state, &result.state.resolved) {
-			log.error("Rules move returned an invalid state")
+		if !model.refresh(&game.world_state, &game.engine) {
+			log.error("Could not retain the current rules state")
 			return
 		}
 		world.update_player(&game.world_renderer, &game.world_state, direction)

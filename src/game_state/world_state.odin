@@ -1,13 +1,11 @@
-// Don't retain c pointers in here
 package game_state
 
 import rules "../game_rules"
-import "core:mem"
 
+// World_State owns one immutable snapshot allocation supplied by the C rules
+// library. Views into owned.state remain valid until refresh or unload.
 World_State :: struct {
-	entities: []rules.Entity,
-	outcome:  rules.Outcome,
-	loaded:   bool,
+	owned: rules.State_Result,
 }
 
 unload :: proc(state: ^World_State) {
@@ -15,52 +13,45 @@ unload :: proc(state: ^World_State) {
 		return
 	}
 
-	delete(state.entities)
-	state.entities = nil
-	state.outcome = .Ongoing
-	state.loaded = false
+	rules.dispose_state_result(&state.owned)
 }
 
-// Add the static level collections here when they move out of their renderers.
-replace_from_snapshot :: proc(state: ^World_State, snapshot: ^rules.Snapshot) -> bool {
-	if snapshot == nil {
+// refresh prepares the next owner before disposing the current one, leaving
+// the existing world intact if the C call fails or has no state.
+refresh :: proc(state: ^World_State, engine: ^rules.Engine) -> bool {
+	if state == nil || engine == nil {
 		return false
 	}
 
-	return replace_from_resolved(state, &snapshot.resolved)
-}
-
-// replace_from_resolved deep-copies pointer-backed C data before its owning result is disposed.
-// The replacement is prepared first so state is not partially updated.
-replace_from_resolved :: proc(state: ^World_State, resolved: ^rules.Resolved_State) -> bool {
-	if state == nil || resolved == nil {
+	next: rules.State_Result
+	if rules.get_state(engine, &next) != .Ok || next.has_state == 0 {
+		rules.dispose_state_result(&next)
 		return false
 	}
 
-	entity_count := int(resolved.entity_count)
-	if entity_count > 0 && resolved.entities == nil {
-		return false
-	}
-
-	next_entities := make([]rules.Entity, entity_count)
-	if entity_count > 0 {
-		incoming := mem.slice_ptr(resolved.entities, entity_count)
-		copy(next_entities, incoming)
-	}
-
-	delete(state.entities)
-	state.entities = next_entities
-	state.outcome = resolved.outcome
-	state.loaded = true
+	rules.dispose_state_result(&state.owned)
+	state.owned = next
+	next = {}
 	return true
 }
 
-player :: proc(state: ^World_State) -> (entity: rules.Entity, ok: bool) {
-	if state == nil || !state.loaded {
+snapshot :: proc(state: ^World_State) -> (snapshot: ^rules.Snapshot, ok: bool) {
+	if state == nil || state.owned.has_state == 0 || state.owned.owned_storage == nil {
 		return
 	}
 
-	for candidate in state.entities {
+	snapshot = &state.owned.state
+	ok = true
+	return
+}
+
+player :: proc(state: ^World_State) -> (entity: rules.Entity, ok: bool) {
+	current, loaded := snapshot(state)
+	if !loaded {
+		return
+	}
+
+	for candidate in rules.entities_view(&current.resolved) {
 		if candidate.kind == .Player {
 			return candidate, true
 		}

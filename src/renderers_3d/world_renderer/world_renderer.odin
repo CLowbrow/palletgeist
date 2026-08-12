@@ -26,12 +26,11 @@ unload :: proc(renderer: ^Renderer) {
 
 load_level :: proc(
 	renderer: ^Renderer,
-	level: ^rules.Level,
 	state: ^model.World_State,
 ) {
-	static_level.load_level(&renderer.static_level, level)
+	static_level.load_level(&renderer.static_level, state)
 	update_player_target(renderer, state)
-	if bounds, ok := static_level.world_bounds(&renderer.static_level); ok {
+	if bounds, ok := static_level.world_bounds(&renderer.static_level, state); ok {
 		camera.fit_bounds(&renderer.camera, bounds)
 	}
 }
@@ -54,7 +53,7 @@ draw :: proc(
 	camera.begin(&renderer.camera)
 	defer camera.end()
 
-	static_level.draw(&renderer.static_level)
+	static_level.draw(&renderer.static_level, state)
 	player.draw(&renderer.player, state, &renderer.static_level.transform)
 }
 

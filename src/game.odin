@@ -29,12 +29,12 @@ start_level :: proc(game: ^Game_State, level_index: int) -> bool {
 		return false
 	}
 
-	if !model.replace_from_snapshot(&game.world_state, &result.state) {
-		fmt.eprintln("Loaded level returned an invalid state")
+	if !model.refresh(&game.world_state, &game.engine) {
+		fmt.eprintln("Could not retain the loaded level state")
 		return false
 	}
 
-	world.load_level(&game.world_renderer, &result.state.level, &game.world_state)
+	world.load_level(&game.world_renderer, &game.world_state)
 
 	return true
 }
