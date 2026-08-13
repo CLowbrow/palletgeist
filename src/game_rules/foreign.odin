@@ -38,6 +38,10 @@ foreign rules_lib {
 		out_result: ^Move_Result,
 	) -> u32 ---
 	game_rules_move_result_dispose :: proc(result: ^Move_Result) ---
-	game_rules_engine_rewind :: proc(engine: rawptr) -> cstring ---
+	game_rules_engine_rewind_data :: proc(
+		engine:     rawptr,
+		out_result: ^Rewind_Result,
+	) -> u32 ---
+	game_rules_rewind_result_dispose :: proc(result: ^Rewind_Result) ---
 	game_rules_string_free :: proc(result: cstring) ---
 }

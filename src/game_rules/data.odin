@@ -63,6 +63,11 @@ Move_Status :: enum u32 {
 	Level_Terminal          = 10,
 }
 
+Rewind_Status :: enum u32 {
+	Rewound       = 0,
+	History_Empty = 1,
+}
+
 JSON_Load_Status :: enum u32 {
 	Loaded        = 0,
 	Invalid_JSON  = 1,
@@ -276,6 +281,22 @@ Move_Result :: struct {
 	owned_storage:     rawptr,
 }
 
+// Rewind_Result owns every pointer reachable from it through owned_storage.
+// Do not copy it while owned; call dispose_rewind_result exactly once after use.
+Rewind_Result :: struct {
+	status:             Rewind_Status,
+	accepted:           u32,
+	events:             ^Event,
+	event_count:        u32,
+	has_restored_state: u32,
+	restored_state:     Resolved_State,
+	has_state:          u32,
+	state:              Snapshot,
+	has_outcome:        u32,
+	outcome:            Outcome,
+	owned_storage:      rawptr,
+}
+
 // Native 64-bit C ABI layout checks. The C library has matching static assertions.
 when size_of(rawptr) == 8 {
 	#assert(size_of(Coordinate) == 8)
@@ -307,4 +328,9 @@ when size_of(rawptr) == 8 {
 	#assert(offset_of(Move_Result, final_state) == 112)
 	#assert(offset_of(Move_Result, state) == 184)
 	#assert(offset_of(Move_Result, owned_storage) == 312)
+	#assert(size_of(Rewind_Result) == 232)
+	#assert(offset_of(Rewind_Result, events) == 8)
+	#assert(offset_of(Rewind_Result, restored_state) == 24)
+	#assert(offset_of(Rewind_Result, state) == 96)
+	#assert(offset_of(Rewind_Result, owned_storage) == 224)
 }

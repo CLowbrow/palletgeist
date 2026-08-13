@@ -38,6 +38,17 @@ world_state_retains_c_snapshot_owner :: proc(t: ^testing.T) {
 		testing.expect(t, refresh(&state, &engine))
 	}
 	rules.dispose_move_result(&move_result)
+	testing.expect(t, state.owned.owned_storage != first_owner)
+
+	rewind_result: rules.Rewind_Result
+	rewind_call := rules.rewind(&engine, &rewind_result)
+	testing.expect_value(t, rewind_call, rules.Call_Status.Ok)
+	testing.expect_value(t, rewind_result.status, rules.Rewind_Status.Rewound)
+	testing.expect(t, rewind_result.accepted != 0)
+	if rewind_call == .Ok && rewind_result.has_state != 0 {
+		testing.expect(t, refresh(&state, &engine))
+	}
+	rules.dispose_rewind_result(&rewind_result)
 
 	// Result owners are independent of both operation results and the engine.
 	rules.destroy_engine(&engine)
@@ -47,7 +58,7 @@ world_state_retains_c_snapshot_owner :: proc(t: ^testing.T) {
 		return
 	}
 
-	testing.expect(t, state.owned.owned_storage != first_owner)
+	testing.expect(t, state.owned.owned_storage != nil)
 	testing.expect_value(t, current.level.width, u32(5))
 	testing.expect_value(t, len(rules.cells_view(&current.level)), 45)
 	_, player_loaded := player(&state)

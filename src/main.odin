@@ -4,8 +4,8 @@ import "core:fmt"
 import rl "vendor:raylib"
 
 import "core:log"
-import model "game_state"
 import rules "game_rules"
+import model "game_state"
 import menus "menus"
 import helpers "renderers_3d/helpers"
 import world "renderers_3d/world_renderer"
@@ -20,6 +20,7 @@ EMBEDDED_LEVELS := #load_directory("../levels")
 
 Game_State :: struct {
 	engine:         rules.Engine,
+	current_level:  int,
 	world_state:    model.World_State,
 	world_renderer: world.Renderer,
 	mode:           helpers.UI_Mode,
@@ -94,6 +95,31 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 	}
 }
 
+apply_rewind :: proc(game: ^Game_State) {
+	result: rules.Rewind_Result
+	call := rules.rewind(&game.engine, &result)
+	defer rules.dispose_rewind_result(&result)
+	if call != .Ok {
+		log.errorf("Rules rewind call failed: %v", call)
+		return
+	}
+
+	log.infof(
+		"Rewind: status=%v accepted=%v events=%d",
+		result.status,
+		result.accepted != 0,
+		result.event_count,
+	)
+
+	if result.has_state != 0 {
+		if !model.refresh(&game.world_state, &game.engine) {
+			log.error("Could not retain the rewound rules state")
+			return
+		}
+		world.refresh_player(&game.world_renderer, &game.world_state)
+	}
+}
+
 update :: proc(game: ^Game_State) {
 	// Handle input
 	if game.mode == helpers.UI_Mode.Playing {
@@ -105,6 +131,18 @@ update :: proc(game: ^Game_State) {
 			apply_move(game, .North)
 		} else if rl.IsKeyPressed(.DOWN) {
 			apply_move(game, .South)
+		}
+
+		if rl.IsKeyPressed(.R) {
+			// Reset level
+			if !start_level(game, game.current_level) {
+				log.errorf("Could not reset level")
+				return
+			}
+		}
+		if rl.IsKeyPressed(.Z) {
+			// Undo one move
+			apply_rewind(game)
 		}
 	}
 }

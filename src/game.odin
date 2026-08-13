@@ -1,7 +1,7 @@
 package main
 import "core:fmt"
-import model "game_state"
 import rules "game_rules"
+import model "game_state"
 import world "renderers_3d/world_renderer"
 
 start_level :: proc(game: ^Game_State, level_index: int) -> bool {
@@ -35,6 +35,7 @@ start_level :: proc(game: ^Game_State, level_index: int) -> bool {
 	}
 
 	world.load_level(&game.world_renderer, &game.world_state)
+	game.current_level = level_index
 
 	return true
 }

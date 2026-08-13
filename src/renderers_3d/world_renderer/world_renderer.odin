@@ -40,6 +40,10 @@ update_player :: proc(renderer: ^Renderer, state: ^model.World_State, direction:
 	update_player_target(renderer, state)
 }
 
+refresh_player :: proc(renderer: ^Renderer, state: ^model.World_State) {
+	update_player_target(renderer, state)
+}
+
 draw :: proc(renderer: ^Renderer, state: ^model.World_State, mode: helpers.UI_Mode) {
 	snapshot, loaded := model.snapshot(state)
 	if !loaded {

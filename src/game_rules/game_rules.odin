@@ -113,12 +113,20 @@ dispose_move_result :: proc(result: ^Move_Result) {
 	game_rules_move_result_dispose(result)
 }
 
-rewind :: proc(engine: ^Engine) -> (response: string, ok: bool) {
-	if engine == nil || engine.handle == nil {
-		return "", false
+rewind :: proc(engine: ^Engine, result: ^Rewind_Result) -> Call_Status {
+	if result == nil || result.owned_storage != nil {
+		return .Invalid_Argument
 	}
 
-	return clone_response(game_rules_engine_rewind(engine.handle))
+	handle: rawptr
+	if engine != nil {
+		handle = engine.handle
+	}
+	return Call_Status(game_rules_engine_rewind_data(handle, result))
+}
+
+dispose_rewind_result :: proc(result: ^Rewind_Result) {
+	game_rules_rewind_result_dispose(result)
 }
 
 clone_response :: proc(c_response: cstring) -> (response: string, ok: bool) {
