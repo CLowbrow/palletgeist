@@ -69,57 +69,6 @@ main :: proc() {
 	}
 }
 
-apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
-	result: rules.Move_Result
-	call := rules.move(&game.engine, direction, &result)
-	defer rules.dispose_move_result(&result)
-	if call != .Ok {
-		log.errorf("Rules move call failed: %v", call)
-		return
-	}
-
-	log.infof(
-		"Move: status=%v accepted=%v ticks=%d events=%d",
-		result.status,
-		result.accepted != 0,
-		result.tick_count,
-		result.event_count,
-	)
-
-	if result.has_state != 0 {
-		if !model.refresh(&game.world_state, &game.engine) {
-			log.error("Could not retain the current rules state")
-			return
-		}
-		world.update_player(&game.world_renderer, &game.world_state, direction)
-	}
-}
-
-apply_rewind :: proc(game: ^Game_State) {
-	result: rules.Rewind_Result
-	call := rules.rewind(&game.engine, &result)
-	defer rules.dispose_rewind_result(&result)
-	if call != .Ok {
-		log.errorf("Rules rewind call failed: %v", call)
-		return
-	}
-
-	log.infof(
-		"Rewind: status=%v accepted=%v events=%d",
-		result.status,
-		result.accepted != 0,
-		result.event_count,
-	)
-
-	if result.has_state != 0 {
-		if !model.refresh(&game.world_state, &game.engine) {
-			log.error("Could not retain the rewound rules state")
-			return
-		}
-		world.refresh_player(&game.world_renderer, &game.world_state)
-	}
-}
-
 update :: proc(game: ^Game_State) {
 	// Handle input
 	if game.mode == helpers.UI_Mode.Playing {
