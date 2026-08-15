@@ -58,8 +58,23 @@ Entity_Pose :: struct {
 }
 
 Turn_Animation_Queue :: struct {
-	ticks:      []rules.Tick,
-	tick_index: int,
-	start_time: f32,
-	animating:  bool,
+	ticks:        []rules.Tick,
+	tick_index:   int,
+	tick_elapsed: f32,
+	animating:    bool,
+}
+
+entity_draw_position :: proc(
+	transform: ^Grid_Transform,
+	coordinate: rules.Coordinate,
+	bottom_half_steps: i32,
+	model_bottom: f32,
+	scale: f32,
+) -> rl.Vector3 {
+	position := coordinate_to_world(transform, coordinate)
+	position.y =
+		BASE_THICKNESS +
+		f32(bottom_half_steps) * transform.height_unit * 0.5 -
+		model_bottom * scale
+	return position
 }

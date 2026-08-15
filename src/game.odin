@@ -49,6 +49,10 @@ start_level :: proc(game: ^Game_State, level_index: int) -> bool {
 }
 
 apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
+	if game.animation_queue.animating {
+		return
+	}
+
 	result: rules.Move_Result
 	call := rules.move(&game.engine, direction, &result)
 	defer rules.dispose_move_result(&result)
@@ -65,15 +69,15 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 		}
 	}
 
-	game.animation_queue = {}
-	rules.dispose_move_result(&game.retained_result)
-
 	clear_move_animation(game)
+
+	game.retained_result = result
+	result = {}
 
 	game.animation_queue = {
 		ticks      = helpers.ticks_view(&game.retained_result),
 		tick_index = 0,
-		animating  = true,
+		animating  = game.retained_result.tick_count > 0,
 	}
 
 	world.update_player(&game.world_renderer, &game.world_state, direction)

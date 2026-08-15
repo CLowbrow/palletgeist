@@ -74,8 +74,10 @@ main :: proc() {
 }
 
 update :: proc(game: ^Game_State) {
+	update_move_animation(game, rl.GetFrameTime())
+
 	// Handle input
-	if game.mode == helpers.UI_Mode.Playing {
+	if game.mode == helpers.UI_Mode.Playing && !game.animation_queue.animating {
 		if rl.IsKeyPressed(.LEFT) {
 			apply_move(game, .West)
 		} else if rl.IsKeyPressed(.RIGHT) {
@@ -105,7 +107,7 @@ draw :: proc(game: ^Game_State) {
 	defer rl.EndDrawing()
 
 	rl.ClearBackground(rl.Color{20, 22, 28, 255})
-	world.draw(&game.world_renderer, &game.world_state, game.mode)
+	world.draw(&game.world_renderer, &game.world_state, &game.animation_queue, game.mode)
 
 	if game.mode == .MainMenu {
 		if game.mode == .MainMenu {

@@ -44,11 +44,19 @@ refresh_player :: proc(renderer: ^Renderer, state: ^model.World_State) {
 	update_player_target(renderer, state)
 }
 
-draw :: proc(renderer: ^Renderer, state: ^model.World_State, mode: helpers.UI_Mode) {
+draw :: proc(
+	renderer: ^Renderer,
+	state: ^model.World_State,
+	animation_queue: ^helpers.Turn_Animation_Queue,
+	mode: helpers.UI_Mode,
+) {
 	snapshot, loaded := model.snapshot(state)
 	if !loaded {
 		return
 	}
+
+	progress := animation_queue.tick_elapsed / helpers.TICK_TIME_BUDGET
+	progress = clamp(progress, 0, 1)
 
 	camera.update_position(&renderer.camera, mode)
 	camera.begin(&renderer.camera)
@@ -56,7 +64,13 @@ draw :: proc(renderer: ^Renderer, state: ^model.World_State, mode: helpers.UI_Mo
 
 	static_level.draw(&renderer.static_level, &snapshot.level)
 	if player_entity, ok := model.player(state); ok {
-		player.draw(&renderer.player, &player_entity, &renderer.static_level.transform)
+		player.draw(
+			&renderer.player,
+			&player_entity,
+			&renderer.static_level.transform,
+			animation_queue,
+			progress,
+		)
 	}
 	object.draw(&renderer.objects, &snapshot.resolved, &renderer.static_level.transform)
 }

@@ -4,6 +4,7 @@ package player_renderer
 import rules "../../game_rules"
 import model "../../game_state"
 import "../helpers"
+import "core:math"
 import rl "vendor:raylib"
 
 MODEL_PATH :: "assets/Gorker.glb"
@@ -59,7 +60,13 @@ camera_target :: proc(
 	return
 }
 
-draw :: proc(renderer: ^Renderer, player: ^rules.Entity, transform: ^helpers.Grid_Transform) {
+draw :: proc(
+	renderer: ^Renderer,
+	player: ^rules.Entity,
+	transform: ^helpers.Grid_Transform,
+	animation_queue: ^helpers.Turn_Animation_Queue,
+	progress: f32,
+) {
 	bounds := renderer.model_bounds
 	model_width := bounds.max.x - bounds.min.x
 	model_depth := bounds.max.z - bounds.min.z
@@ -71,11 +78,56 @@ draw :: proc(renderer: ^Renderer, player: ^rules.Entity, transform: ^helpers.Gri
 	scale := transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
 	rotation := direction_rotation(renderer.direction)
 
-	position := helpers.coordinate_to_world(transform, player.coordinate)
-	position.y =
-		helpers.BASE_THICKNESS +
-		f32(player.bottom_half_steps) * transform.height_unit * 0.5 -
-		bounds.min.y * scale
+	position := helpers.entity_draw_position(
+		transform,
+		player.coordinate,
+		player.bottom_half_steps,
+		bounds.min.y,
+		scale,
+	)
+	//find the position
+	if animation_queue != nil &&
+	   len(animation_queue.ticks) > 0 &&
+	   animation_queue.animating &&
+	   animation_queue.tick_index >= 0 &&
+	   animation_queue.tick_index < len(animation_queue.ticks) {
+		current_tick := &animation_queue.ticks[animation_queue.tick_index]
+		events := helpers.events_view(current_tick)
+
+		for event in helpers.events_view(current_tick) {
+			if event.kind != .Entity_Moved || event.entity_id != player.id {
+				continue
+			}
+
+			from_position := helpers.entity_draw_position(
+				transform,
+				event.from,
+				event.old_bottom_half_steps,
+				bounds.min.y,
+				scale,
+			)
+
+			to_position := helpers.entity_draw_position(
+				transform,
+				event.to,
+				event.new_bottom_half_steps,
+				bounds.min.y,
+				scale,
+			)
+
+			// Cubic ease-in-out, also known as smoothstep.
+			t := clamp(progress, f32(0), f32(1))
+			eased := t * t * (3 - 2 * t)
+
+			position = rl.Vector3 {
+				math.lerp(from_position.x, to_position.x, eased),
+				math.lerp(from_position.y, to_position.y, eased),
+				math.lerp(from_position.z, to_position.z, eased),
+			}
+
+			break
+		}
+	}
 
 	rl.DrawModelEx(
 		renderer.model,
