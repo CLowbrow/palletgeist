@@ -9,12 +9,10 @@ Box_Renderer :: struct {
 }
 
 draw_box :: proc(renderer: ^Box_Renderer, box: rules.Entity, transform: ^helpers.Grid_Transform) {
-	position := helpers.coordinate_to_world(transform, box.coordinate)
-	position.y =
-		helpers.BASE_THICKNESS +
-		f32(box.bottom_half_steps) * transform.height_unit * 0.5 +
-		transform.height_unit * 0.5
+	position := helpers.entity_bottom_to_world(transform, box.coordinate, box.bottom_half_steps)
+	box_height := transform.height_unit * 0.5
+	position.y += box_height * 0.5
 
 	width := transform.tile_size * 0.7
-	rl.DrawCube(position, width, transform.height_unit * 0.5, width, rl.BROWN)
+	rl.DrawCube(position, width, box_height, width, rl.BROWN)
 }

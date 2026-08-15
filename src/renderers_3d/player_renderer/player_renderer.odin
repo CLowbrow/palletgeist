@@ -39,6 +39,18 @@ face :: proc(renderer: ^Renderer, direction: rules.Direction) {
 	renderer.direction = direction
 }
 
+player_draw_position :: proc(
+	transform: ^helpers.Grid_Transform,
+	coordinate: rules.Coordinate,
+	bottom_half_steps: i32,
+	model_bottom: f32,
+	scale: f32,
+) -> rl.Vector3 {
+	position := helpers.entity_bottom_to_world(transform, coordinate, bottom_half_steps)
+	position.y -= model_bottom * scale
+	return position
+}
+
 camera_target :: proc(
 	state: ^model.World_State,
 	transform: ^helpers.Grid_Transform,
@@ -78,28 +90,27 @@ draw :: proc(
 	scale := transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
 	rotation := direction_rotation(renderer.direction)
 
-	position := helpers.entity_draw_position(
+	position := player_draw_position(
 		transform,
 		player.coordinate,
 		player.bottom_half_steps,
 		bounds.min.y,
 		scale,
 	)
-	//find the position
+
 	if animation_queue != nil &&
 	   len(animation_queue.ticks) > 0 &&
 	   animation_queue.animating &&
 	   animation_queue.tick_index >= 0 &&
 	   animation_queue.tick_index < len(animation_queue.ticks) {
 		current_tick := &animation_queue.ticks[animation_queue.tick_index]
-		events := helpers.events_view(current_tick)
 
 		for event in helpers.events_view(current_tick) {
 			if event.kind != .Entity_Moved || event.entity_id != player.id {
 				continue
 			}
 
-			from_position := helpers.entity_draw_position(
+			from_position := player_draw_position(
 				transform,
 				event.from,
 				event.old_bottom_half_steps,
@@ -107,7 +118,7 @@ draw :: proc(
 				scale,
 			)
 
-			to_position := helpers.entity_draw_position(
+			to_position := player_draw_position(
 				transform,
 				event.to,
 				event.new_bottom_half_steps,

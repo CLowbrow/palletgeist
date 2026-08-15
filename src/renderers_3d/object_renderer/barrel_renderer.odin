@@ -13,12 +13,14 @@ draw_barrel :: proc(
 	barrel: rules.Entity,
 	transform: ^helpers.Grid_Transform,
 ) {
-	position := helpers.coordinate_to_world(transform, barrel.coordinate)
-	position.y =
-		helpers.BASE_THICKNESS +
-		f32(barrel.bottom_half_steps) * transform.height_unit * 0.5 +
-		transform.height_unit * 0.25
+	position := helpers.entity_bottom_to_world(
+		transform,
+		barrel.coordinate,
+		barrel.bottom_half_steps,
+	)
+	barrel_height := transform.height_unit * 0.5
+	position.y += barrel_height * 0.5
 
 	radius := transform.tile_size * 0.35
-	rl.DrawCylinder(position, radius, radius, transform.height_unit * 0.5, 16, rl.RED)
+	rl.DrawCylinder(position, radius, radius, barrel_height, 16, rl.RED)
 }
