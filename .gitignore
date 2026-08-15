@@ -5,3 +5,5 @@
 .DS_Store
 *.swp
 
+# macOS debug-symbol bundles
+*.dSYM/
