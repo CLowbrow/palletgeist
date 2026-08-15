@@ -3,24 +3,22 @@ package object_renderer
 import rules "../../game_rules"
 import helpers "../helpers"
 
-Renderer :: struct {
-	boxes:   Box_Renderer,
-	barrels: Barrel_Renderer,
-}
+Renderer :: struct {}
 
 draw :: proc(
 	renderer: ^Renderer,
-	resolved: ^rules.Resolved_State,
+	entities: []rules.Entity,
 	transform: ^helpers.Grid_Transform,
+	poses: ^map[u64]helpers.Entity_Pose,
 ) {
-	for entity in rules.entities_view(resolved) {
+	for entity in entities {
 		switch entity.kind {
 		case .Box:
-			draw_box(&renderer.boxes, entity, transform)
+			draw_box(entity, transform, poses)
 		case .Barrel:
-			draw_barrel(&renderer.barrels, entity, transform)
+			draw_barrel(entity, transform, poses)
 		case .Player:
-			// The player has its own renderer and render state.
+		// The player has its own renderer and render state.
 		}
 	}
 }

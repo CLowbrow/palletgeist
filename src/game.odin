@@ -75,9 +75,11 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 	result = {}
 
 	game.animation_queue = {
-		ticks      = helpers.ticks_view(&game.retained_result),
-		tick_index = 0,
-		animating  = game.retained_result.tick_count > 0,
+		initial_state = &game.retained_result.initial_state,
+		ticks         = helpers.ticks_view(&game.retained_result),
+		tick_index    = 0,
+		animating     = game.retained_result.has_initial_state !=
+			0 && game.retained_result.tick_count > 0,
 	}
 
 	world.update_player(&game.world_renderer, &game.world_state, direction)

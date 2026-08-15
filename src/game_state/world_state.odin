@@ -51,7 +51,15 @@ player :: proc(state: ^World_State) -> (entity: rules.Entity, ok: bool) {
 		return
 	}
 
-	for candidate in rules.entities_view(&current.resolved) {
+	return player_from_resolved(&current.resolved)
+}
+
+player_from_resolved :: proc(resolved: ^rules.Resolved_State) -> (entity: rules.Entity, ok: bool) {
+	if resolved == nil {
+		return
+	}
+
+	for candidate in rules.entities_view(resolved) {
 		if candidate.kind == .Player {
 			return candidate, true
 		}

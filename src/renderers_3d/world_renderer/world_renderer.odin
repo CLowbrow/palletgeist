@@ -65,24 +65,33 @@ draw :: proc(
 	camera.begin(&renderer.camera)
 	defer camera.end()
 
-	current_tick: rules.Tick
+	current_tick: ^rules.Tick
+	render_resolved := &snapshot.resolved
 
-	if len(animation_queue.ticks) > 0 &&
-	   animation_queue.animating &&
+	if animation_queue.animating &&
 	   animation_queue.tick_index >= 0 &&
 	   animation_queue.tick_index < len(animation_queue.ticks) {
-		current_tick = animation_queue.ticks[animation_queue.tick_index]
+		tick_index := animation_queue.tick_index
+		current_tick = &animation_queue.ticks[tick_index]
+
+		if tick_index == 0 {
+			if animation_queue.initial_state != nil {
+				render_resolved = animation_queue.initial_state
+			}
+		} else {
+			render_resolved = &animation_queue.ticks[tick_index - 1].state_after
+		}
 	}
 
 	helpers.populate_entity_poses(
 		&renderer.entity_poses,
-		&current_tick,
+		current_tick,
 		progress,
 		&renderer.static_level.transform,
 	)
 
 	static_level.draw(&renderer.static_level, &snapshot.level)
-	if player_entity, ok := model.player(state); ok {
+	if player_entity, ok := model.player_from_resolved(render_resolved); ok {
 		player.draw(
 			&renderer.player,
 			&player_entity,
@@ -90,7 +99,12 @@ draw :: proc(
 			&renderer.entity_poses,
 		)
 	}
-	object.draw(&renderer.objects, &snapshot.resolved, &renderer.static_level.transform)
+	object.draw(
+		&renderer.objects,
+		rules.entities_view(render_resolved),
+		&renderer.static_level.transform,
+		&renderer.entity_poses,
+	)
 }
 
 update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {

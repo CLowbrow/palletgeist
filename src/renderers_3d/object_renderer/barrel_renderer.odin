@@ -4,20 +4,19 @@ import rules "../../game_rules"
 import helpers "../helpers"
 import rl "vendor:raylib"
 
-Barrel_Renderer :: struct {
-	// TODO: maybe put stuff in here?
-}
-
 draw_barrel :: proc(
-	renderer: ^Barrel_Renderer,
 	barrel: rules.Entity,
 	transform: ^helpers.Grid_Transform,
+	poses: ^map[u64]helpers.Entity_Pose,
 ) {
 	position := helpers.entity_bottom_to_world(
 		transform,
 		barrel.coordinate,
 		barrel.bottom_half_steps,
 	)
+	if pose, found := poses[barrel.id]; found {
+		position = pose.position
+	}
 	barrel_height := transform.height_unit * 0.5
 	position.y += barrel_height * 0.5
 

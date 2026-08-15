@@ -59,10 +59,11 @@ Entity_Pose :: struct {
 }
 
 Turn_Animation_Queue :: struct {
-	ticks:        []rules.Tick,
-	tick_index:   int,
-	tick_elapsed: f32,
-	animating:    bool,
+	initial_state: ^rules.Resolved_State,
+	ticks:         []rules.Tick,
+	tick_index:    int,
+	tick_elapsed:  f32,
+	animating:     bool,
 }
 
 entity_bottom_to_world :: proc(
