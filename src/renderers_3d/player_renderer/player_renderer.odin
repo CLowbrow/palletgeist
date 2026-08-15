@@ -4,7 +4,6 @@ package player_renderer
 import rules "../../game_rules"
 import model "../../game_state"
 import "../helpers"
-import "core:math"
 import rl "vendor:raylib"
 
 MODEL_PATH :: "assets/Gorker.glb"
@@ -39,16 +38,8 @@ face :: proc(renderer: ^Renderer, direction: rules.Direction) {
 	renderer.direction = direction
 }
 
-player_draw_position :: proc(
-	transform: ^helpers.Grid_Transform,
-	coordinate: rules.Coordinate,
-	bottom_half_steps: i32,
-	model_bottom: f32,
-	scale: f32,
-) -> rl.Vector3 {
-	position := helpers.entity_bottom_to_world(transform, coordinate, bottom_half_steps)
-	position.y -= model_bottom * scale
-	return position
+player_draw_position :: proc(universal_position: ^[3]f32, model_bottom: f32, scale: f32) {
+	universal_position.y -= model_bottom * scale
 }
 
 camera_target :: proc(
@@ -76,8 +67,7 @@ draw :: proc(
 	renderer: ^Renderer,
 	player: ^rules.Entity,
 	transform: ^helpers.Grid_Transform,
-	animation_queue: ^helpers.Turn_Animation_Queue,
-	progress: f32,
+	poses: ^map[u64]helpers.Entity_Pose,
 ) {
 	bounds := renderer.model_bounds
 	model_width := bounds.max.x - bounds.min.x
@@ -90,55 +80,18 @@ draw :: proc(
 	scale := transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
 	rotation := direction_rotation(renderer.direction)
 
-	position := player_draw_position(
+	position := helpers.entity_bottom_to_world(
 		transform,
 		player.coordinate,
 		player.bottom_half_steps,
-		bounds.min.y,
-		scale,
 	)
 
-	if animation_queue != nil &&
-	   len(animation_queue.ticks) > 0 &&
-	   animation_queue.animating &&
-	   animation_queue.tick_index >= 0 &&
-	   animation_queue.tick_index < len(animation_queue.ticks) {
-		current_tick := &animation_queue.ticks[animation_queue.tick_index]
-
-		for event in helpers.events_view(current_tick) {
-			if event.kind != .Entity_Moved || event.entity_id != player.id {
-				continue
-			}
-
-			from_position := player_draw_position(
-				transform,
-				event.from,
-				event.old_bottom_half_steps,
-				bounds.min.y,
-				scale,
-			)
-
-			to_position := player_draw_position(
-				transform,
-				event.to,
-				event.new_bottom_half_steps,
-				bounds.min.y,
-				scale,
-			)
-
-			// Cubic ease-in-out, also known as smoothstep.
-			t := clamp(progress, f32(0), f32(1))
-			eased := t * t * (3 - 2 * t)
-
-			position = rl.Vector3 {
-				math.lerp(from_position.x, to_position.x, eased),
-				math.lerp(from_position.y, to_position.y, eased),
-				math.lerp(from_position.z, to_position.z, eased),
-			}
-
-			break
-		}
+	if pose, found := poses[player.id]; found {
+		position = pose.position
 	}
+
+	player_draw_position(&position, bounds.min.y, scale)
+
 
 	rl.DrawModelEx(
 		renderer.model,

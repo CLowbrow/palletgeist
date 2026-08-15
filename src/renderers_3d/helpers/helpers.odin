@@ -1,6 +1,7 @@
 package helpers
 
 import rules "../../game_rules"
+import "core:math"
 import "core:mem"
 import rl "vendor:raylib"
 
@@ -70,8 +71,42 @@ entity_bottom_to_world :: proc(
 	bottom_half_steps: i32,
 ) -> rl.Vector3 {
 	position := coordinate_to_world(transform, coordinate)
-	position.y =
-		BASE_THICKNESS +
-		f32(bottom_half_steps) * transform.height_unit * 0.5
+	position.y = BASE_THICKNESS + f32(bottom_half_steps) * transform.height_unit * 0.5
 	return position
+}
+
+populate_entity_poses :: proc(
+	poses: ^map[u64]Entity_Pose,
+	current_tick: ^rules.Tick,
+	progress: f32,
+	transform: ^Grid_Transform,
+) {
+	clear(poses)
+
+	if current_tick == nil {
+		return
+	}
+
+	t := clamp(progress, f32(0), f32(1))
+	eased := t * t * (3 - 2 * t)
+
+	for event in events_view(current_tick) {
+		if event.kind != .Entity_Moved {
+			continue
+		}
+
+		from_position := entity_bottom_to_world(transform, event.from, event.old_bottom_half_steps)
+
+		to_position := entity_bottom_to_world(transform, event.to, event.new_bottom_half_steps)
+
+		pose := Entity_Pose {
+			position = {
+				math.lerp(from_position.x, to_position.x, eased),
+				math.lerp(from_position.y, to_position.y, eased),
+				math.lerp(from_position.z, to_position.z, eased),
+			},
+		}
+
+		map_insert(poses, event.entity_id, pose)
+	}
 }
