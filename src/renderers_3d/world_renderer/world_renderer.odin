@@ -88,7 +88,6 @@ draw :: proc(
 			&player_entity,
 			&renderer.static_level.transform,
 			&renderer.entity_poses,
-			progress,
 		)
 	}
 	object.draw(&renderer.objects, &snapshot.resolved, &renderer.static_level.transform)
