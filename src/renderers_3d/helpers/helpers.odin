@@ -1,9 +1,11 @@
 package helpers
 
 import rules "../../game_rules"
+import "core:mem"
 import rl "vendor:raylib"
 
 BASE_THICKNESS :: f32(0.12)
+TICK_TIME_BUDGET :: f32(0.2) //seconds
 
 UI_Mode :: enum {
 	MainMenu,
@@ -32,4 +34,32 @@ coordinate_to_world :: proc(
 	z_sign: f32 = -1
 
 	return rl.Vector3{dx * x_sign * transform.tile_size, 0, dy * z_sign * transform.tile_size}
+}
+
+ticks_view :: proc(result: ^rules.Move_Result) -> []rules.Tick {
+	if result == nil || result.tick_count == 0 || result.ticks == nil {
+		return nil
+	}
+
+	return mem.slice_ptr(result.ticks, int(result.tick_count))
+}
+
+events_view :: proc(tick: ^rules.Tick) -> []rules.Event {
+	if tick == nil || tick.event_count == 0 || tick.events == nil {
+		return nil
+	}
+
+	return mem.slice_ptr(tick.events, int(tick.event_count))
+}
+
+Entity_Pose :: struct {
+	position: rl.Vector3,
+	rotation: f32, //optional except player
+}
+
+Turn_Animation_Queue :: struct {
+	ticks:      []rules.Tick,
+	tick_index: int,
+	start_time: f32,
+	animating:  bool,
 }

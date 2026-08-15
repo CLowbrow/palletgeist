@@ -19,11 +19,14 @@ MIN_WINDOW_HEIGHT :: 360
 EMBEDDED_LEVELS := #load_directory("../levels")
 
 Game_State :: struct {
-	engine:         rules.Engine,
-	current_level:  int,
-	world_state:    model.World_State,
-	world_renderer: world.Renderer,
-	mode:           helpers.UI_Mode,
+	engine:          rules.Engine,
+	current_level:   int,
+	world_state:     model.World_State,
+	world_renderer:  world.Renderer,
+	mode:            helpers.UI_Mode,
+	animation_queue: helpers.Turn_Animation_Queue,
+	// populated by the rules engine and retained until the next move
+	retained_result: rules.Move_Result,
 }
 
 main :: proc() {
@@ -46,6 +49,7 @@ main :: proc() {
 		mode   = helpers.UI_Mode.MainMenu,
 		engine = engine,
 	}
+	defer rules.dispose_move_result(&game.retained_result)
 
 	rl.SetConfigFlags({.WINDOW_RESIZABLE, .MSAA_4X_HINT})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)

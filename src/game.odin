@@ -3,7 +3,13 @@ import "core:fmt"
 import "core:log"
 import rules "game_rules"
 import model "game_state"
+import helpers "renderers_3d/helpers"
 import world "renderers_3d/world_renderer"
+
+clear_move_animation :: proc(game: ^Game_State) {
+	game.animation_queue = {}
+	rules.dispose_move_result(&game.retained_result)
+}
 
 start_level :: proc(game: ^Game_State, level_index: int) -> bool {
 	// calling into c jank
@@ -35,6 +41,7 @@ start_level :: proc(game: ^Game_State, level_index: int) -> bool {
 		return false
 	}
 
+	clear_move_animation(game)
 	world.load_level(&game.world_renderer, &game.world_state)
 	game.current_level = level_index
 
@@ -45,26 +52,31 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 	result: rules.Move_Result
 	call := rules.move(&game.engine, direction, &result)
 	defer rules.dispose_move_result(&result)
+
 	if call != .Ok {
 		log.errorf("Rules move call failed: %v", call)
 		return
 	}
-
-	log.infof(
-		"Move: status=%v accepted=%v ticks=%d events=%d",
-		result.status,
-		result.accepted != 0,
-		result.tick_count,
-		result.event_count,
-	)
 
 	if result.has_state != 0 {
 		if !model.refresh(&game.world_state, &game.engine) {
 			log.error("Could not retain the current rules state")
 			return
 		}
-		world.update_player(&game.world_renderer, &game.world_state, direction)
 	}
+
+	game.animation_queue = {}
+	rules.dispose_move_result(&game.retained_result)
+
+	clear_move_animation(game)
+
+	game.animation_queue = {
+		ticks      = helpers.ticks_view(&game.retained_result),
+		tick_index = 0,
+		animating  = true,
+	}
+
+	world.update_player(&game.world_renderer, &game.world_state, direction)
 }
 
 apply_rewind :: proc(game: ^Game_State) {
@@ -88,6 +100,7 @@ apply_rewind :: proc(game: ^Game_State) {
 			log.error("Could not retain the rewound rules state")
 			return
 		}
+		clear_move_animation(game)
 		world.refresh_player(&game.world_renderer, &game.world_state)
 	}
 }
