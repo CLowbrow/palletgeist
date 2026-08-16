@@ -5,10 +5,7 @@ import helpers "../helpers"
 import rl "vendor:raylib"
 
 
-draw_box :: proc(
-	box: rules.Entity,
-	frame: ^helpers.Frame,
-) {
+draw_box :: proc(box: rules.Entity, frame: ^helpers.Frame) {
 	position := helpers.entity_bottom_to_world(
 		frame.transform,
 		box.coordinate,

@@ -4,10 +4,7 @@ import rules "../../game_rules"
 import helpers "../helpers"
 import rl "vendor:raylib"
 
-draw_barrel :: proc(
-	barrel: rules.Entity,
-	frame: ^helpers.Frame,
-) {
+draw_barrel :: proc(barrel: rules.Entity, frame: ^helpers.Frame) {
 	position := helpers.entity_bottom_to_world(
 		frame.transform,
 		barrel.coordinate,

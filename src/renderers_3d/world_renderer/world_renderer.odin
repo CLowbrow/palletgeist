@@ -3,8 +3,8 @@ package world_renderer
 import rules "../../game_rules"
 import model "../../game_state"
 import app "../../helpers"
-import render "../helpers"
 import fixture "../fixture_renderer"
+import render "../helpers"
 import object "../object_renderer"
 import player "../player_renderer"
 import static_level "../static_level_renderer"
@@ -43,11 +43,8 @@ load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
 	}
 	player.face(&renderer.player, player.DEFAULT_DIRECTION)
 	update_player_target(renderer, state)
-	if bounds, ok := static_level.world_bounds(
-		&renderer.static_level,
-		state,
-		&renderer.transform,
-	); ok {
+	if bounds, ok := static_level.world_bounds(&renderer.static_level, state, &renderer.transform);
+	   ok {
 		camera.fit_bounds(&renderer.camera, bounds)
 	}
 }
@@ -123,11 +120,7 @@ draw :: proc(
 	if player_entity, ok := model.player_from_resolved(render_resolved); ok {
 		player.draw(&renderer.player, &player_entity, &frame)
 	}
-	object.draw(
-		&renderer.objects,
-		rules.entities_view(render_resolved),
-		&frame,
-	)
+	object.draw(&renderer.objects, rules.entities_view(render_resolved), &frame)
 }
 
 update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {

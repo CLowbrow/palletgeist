@@ -46,11 +46,9 @@ open_doors_view :: proc(state: ^Resolved_State) -> []Coordinate {
 	return mem.slice_ptr(state.open_doors, int(state.open_door_count))
 }
 
-switch_is_pressed :: proc(
-	level: ^Level,
-	state: ^Resolved_State,
-	coordinate: Coordinate,
-) -> bool {
+
+// TODO: this is bad. Fix it.
+switch_is_pressed :: proc(level: ^Level, state: ^Resolved_State, coordinate: Coordinate) -> bool {
 	if level == nil || state == nil {
 		return false
 	}

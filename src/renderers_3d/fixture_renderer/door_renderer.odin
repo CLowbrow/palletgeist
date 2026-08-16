@@ -27,11 +27,5 @@ draw_door :: proc(
 	position.y = floor_y + model_height * 0.5
 	footprint := ctx.transform.tile_size * DOOR_FOOTPRINT_RATIO
 
-	rl.DrawCube(
-		position,
-		footprint,
-		model_height,
-		footprint,
-		fixture_color(fixture.color),
-	)
+	rl.DrawCube(position, footprint, model_height, footprint, fixture_color(fixture.color))
 }

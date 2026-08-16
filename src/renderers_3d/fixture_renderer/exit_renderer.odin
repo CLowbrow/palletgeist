@@ -7,12 +7,7 @@ import rl "vendor:raylib"
 EXIT_RADIUS_RATIO :: f32(0.34)
 EXIT_HEIGHT_RATIO :: f32(0.55)
 
-draw_exit :: proc(
-	renderer: ^Renderer,
-	fixture: rules.Fixture,
-	ctx: ^helpers.Frame,
-	floor_y: f32,
-) {
+draw_exit :: proc(renderer: ^Renderer, fixture: rules.Fixture, ctx: ^helpers.Frame, floor_y: f32) {
 	position := helpers.coordinate_to_world(ctx.transform, fixture.coordinate)
 	height := ctx.transform.height_unit * EXIT_HEIGHT_RATIO
 	position.y = floor_y + height * 0.5

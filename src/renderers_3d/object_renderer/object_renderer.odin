@@ -5,11 +5,7 @@ import helpers "../helpers"
 
 Renderer :: struct {}
 
-draw :: proc(
-	renderer: ^Renderer,
-	entities: []rules.Entity,
-	frame: ^helpers.Frame,
-) {
+draw :: proc(renderer: ^Renderer, entities: []rules.Entity, frame: ^helpers.Frame) {
 	for entity in entities {
 		switch entity.kind {
 		case .Box:

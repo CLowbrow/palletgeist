@@ -63,11 +63,7 @@ camera_target :: proc(
 	return
 }
 
-draw :: proc(
-	renderer: ^Renderer,
-	player: ^rules.Entity,
-	frame: ^helpers.Frame,
-) {
+draw :: proc(renderer: ^Renderer, player: ^rules.Entity, frame: ^helpers.Frame) {
 	bounds := renderer.model_bounds
 	model_width := bounds.max.x - bounds.min.x
 	model_depth := bounds.max.z - bounds.min.z

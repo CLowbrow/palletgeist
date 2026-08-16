@@ -6,8 +6,8 @@ import rl "vendor:raylib"
 import "core:log"
 import rules "game_rules"
 import model "game_state"
-import menus "menus"
 import helpers "helpers"
+import menus "menus"
 import world "renderers_3d/world_renderer"
 
 WINDOW_WIDTH :: 1280

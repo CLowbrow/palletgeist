@@ -14,12 +14,13 @@ unload :: proc(renderer: ^Renderer) {
 	// TODO: Unload resources owned by the fixture renderer here.
 }
 
-draw :: proc(
-	renderer: ^Renderer,
-	frame: ^helpers.Frame,
-) {
-	if renderer == nil || frame == nil || frame.level == nil || frame.state_before == nil ||
-	   frame.state_after == nil || frame.transform == nil {
+draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame) {
+	if renderer == nil ||
+	   frame == nil ||
+	   frame.level == nil ||
+	   frame.state_before == nil ||
+	   frame.state_after == nil ||
+	   frame.transform == nil {
 		return
 	}
 

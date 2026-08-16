@@ -28,12 +28,5 @@ draw_switch :: proc(
 	position.y = floor_y + model_height * 0.5
 	radius := ctx.transform.tile_size * SWITCH_RADIUS_RATIO
 
-	rl.DrawCylinder(
-		position,
-		radius,
-		radius,
-		model_height,
-		24,
-		fixture_color(fixture.color),
-	)
+	rl.DrawCylinder(position, radius, radius, model_height, 24, fixture_color(fixture.color))
 }
