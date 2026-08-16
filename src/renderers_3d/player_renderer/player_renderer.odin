@@ -34,6 +34,16 @@ unload :: proc(renderer: ^Renderer) {
 	renderer.model_loaded = false
 }
 
+set_shader :: proc(renderer: ^Renderer, shader: rl.Shader) {
+	if !renderer.model_loaded {
+		return
+	}
+
+	for material_index in 0 ..< int(renderer.model.materialCount) {
+		renderer.model.materials[material_index].shader = shader
+	}
+}
+
 face :: proc(renderer: ^Renderer, direction: rules.Direction) {
 	renderer.direction = direction
 }

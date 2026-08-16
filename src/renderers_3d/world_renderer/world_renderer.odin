@@ -18,16 +18,21 @@ Renderer :: struct {
 	player:       player.Renderer,
 	objects:      object.Renderer,
 	entity_poses: map[u64]render.Entity_Pose,
+	lighting:     Lighting,
 }
 
 init :: proc(renderer: ^Renderer) {
 	renderer.transform.tile_size = 1.0
 	renderer.transform.height_unit = 1.0
 	renderer.entity_poses = make(map[u64]render.Entity_Pose)
+	init_lighting(&renderer.lighting)
 	camera.init(&renderer.camera)
 	static_level.init(&renderer.static_level)
 	fixture.init(&renderer.fixtures)
 	player.init(&renderer.player)
+	if renderer.lighting.ready {
+		player.set_shader(&renderer.player, renderer.lighting.shader)
+	}
 }
 
 unload :: proc(renderer: ^Renderer) {
@@ -35,6 +40,7 @@ unload :: proc(renderer: ^Renderer) {
 	player.unload(&renderer.player)
 	fixture.unload(&renderer.fixtures)
 	static_level.unload(&renderer.static_level)
+	unload_lighting(&renderer.lighting)
 }
 
 load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
@@ -46,6 +52,7 @@ load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
 	if bounds, ok := static_level.world_bounds(&renderer.static_level, state, &renderer.transform);
 	   ok {
 		camera.fit_bounds(&renderer.camera, bounds)
+		fit_light_to_bounds(&renderer.lighting, bounds)
 	}
 }
 
@@ -71,10 +78,6 @@ draw :: proc(
 
 	progress := animation_queue.tick_elapsed / app.TICK_TIME_BUDGET
 	progress = clamp(progress, 0, 1)
-
-	camera.update_position(&renderer.camera, mode)
-	camera.begin(&renderer.camera)
-	defer camera.end()
 
 	current_tick: ^rules.Tick
 	render_resolved := &snapshot.resolved
@@ -115,12 +118,31 @@ draw :: proc(
 		poses        = &renderer.entity_poses,
 	}
 
-	static_level.draw(&renderer.static_level, &frame)
-	fixture.draw(&renderer.fixtures, &frame)
-	if player_entity, ok := model.player_from_resolved(render_resolved); ok {
-		player.draw(&renderer.player, &player_entity, &frame)
+	camera.update_position(&renderer.camera, mode)
+	if renderer.lighting.ready {
+		begin_shadow_pass(&renderer.lighting)
+		draw_scene(renderer, &frame, render_resolved)
+		end_shadow_pass(&renderer.lighting)
+
+		begin_lit_pass(&renderer.lighting)
+		camera.begin(&renderer.camera)
+		draw_scene(renderer, &frame, render_resolved)
+		camera.end()
+		end_lit_pass(&renderer.lighting)
+	} else {
+		camera.begin(&renderer.camera)
+		draw_scene(renderer, &frame, render_resolved)
+		camera.end()
 	}
-	object.draw(&renderer.objects, rules.entities_view(render_resolved), &frame)
+}
+
+draw_scene :: proc(renderer: ^Renderer, frame: ^render.Frame, resolved: ^rules.Resolved_State) {
+	static_level.draw(&renderer.static_level, frame)
+	fixture.draw(&renderer.fixtures, frame)
+	if player_entity, ok := model.player_from_resolved(resolved); ok {
+		player.draw(&renderer.player, &player_entity, frame)
+	}
+	object.draw(&renderer.objects, rules.entities_view(resolved), frame)
 }
 
 update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {
