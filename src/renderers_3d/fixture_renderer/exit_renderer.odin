@@ -10,7 +10,7 @@ EXIT_HEIGHT_RATIO :: f32(0.55)
 draw_exit :: proc(
 	renderer: ^Renderer,
 	fixture: rules.Fixture,
-	ctx: ^Draw_Context,
+	ctx: ^helpers.Frame,
 	floor_y: f32,
 ) {
 	position := helpers.coordinate_to_world(ctx.transform, fixture.coordinate)

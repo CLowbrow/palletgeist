@@ -3,7 +3,7 @@ import "core:fmt"
 import "core:log"
 import rules "game_rules"
 import model "game_state"
-import helpers "renderers_3d/helpers"
+import helpers "helpers"
 import world "renderers_3d/world_renderer"
 
 clear_move_animation :: proc(game: ^Game_State) {

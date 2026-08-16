@@ -66,8 +66,7 @@ camera_target :: proc(
 draw :: proc(
 	renderer: ^Renderer,
 	player: ^rules.Entity,
-	transform: ^helpers.Grid_Transform,
-	poses: ^map[u64]helpers.Entity_Pose,
+	frame: ^helpers.Frame,
 ) {
 	bounds := renderer.model_bounds
 	model_width := bounds.max.x - bounds.min.x
@@ -77,16 +76,16 @@ draw :: proc(
 		return
 	}
 
-	scale := transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
+	scale := frame.transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
 	rotation := direction_rotation(renderer.direction)
 
 	position := helpers.entity_bottom_to_world(
-		transform,
+		frame.transform,
 		player.coordinate,
 		player.bottom_half_steps,
 	)
 
-	if pose, found := poses[player.id]; found {
+	if pose, found := frame.poses[player.id]; found {
 		position = pose.position
 	}
 

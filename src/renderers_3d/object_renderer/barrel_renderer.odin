@@ -6,20 +6,19 @@ import rl "vendor:raylib"
 
 draw_barrel :: proc(
 	barrel: rules.Entity,
-	transform: ^helpers.Grid_Transform,
-	poses: ^map[u64]helpers.Entity_Pose,
+	frame: ^helpers.Frame,
 ) {
 	position := helpers.entity_bottom_to_world(
-		transform,
+		frame.transform,
 		barrel.coordinate,
 		barrel.bottom_half_steps,
 	)
-	if pose, found := poses[barrel.id]; found {
+	if pose, found := frame.poses[barrel.id]; found {
 		position = pose.position
 	}
-	barrel_height := transform.height_unit * 0.5
+	barrel_height := frame.transform.height_unit * 0.5
 	position.y += barrel_height * 0.5
 
-	radius := transform.tile_size * 0.35
+	radius := frame.transform.tile_size * 0.35
 	rl.DrawCylinder(position, radius, radius, barrel_height, 16, rl.RED)
 }

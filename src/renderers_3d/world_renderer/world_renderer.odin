@@ -2,7 +2,8 @@ package world_renderer
 
 import rules "../../game_rules"
 import model "../../game_state"
-import helpers "../helpers"
+import app "../../helpers"
+import render "../helpers"
 import fixture "../fixture_renderer"
 import object "../object_renderer"
 import player "../player_renderer"
@@ -11,15 +12,18 @@ import camera "../world_camera"
 
 Renderer :: struct {
 	camera:       camera.Camera,
+	transform:    render.Grid_Transform,
 	static_level: static_level.Renderer,
 	fixtures:     fixture.Renderer,
 	player:       player.Renderer,
 	objects:      object.Renderer,
-	entity_poses: map[u64]helpers.Entity_Pose,
+	entity_poses: map[u64]render.Entity_Pose,
 }
 
 init :: proc(renderer: ^Renderer) {
-	renderer.entity_poses = make(map[u64]helpers.Entity_Pose)
+	renderer.transform.tile_size = 1.0
+	renderer.transform.height_unit = 1.0
+	renderer.entity_poses = make(map[u64]render.Entity_Pose)
 	camera.init(&renderer.camera)
 	static_level.init(&renderer.static_level)
 	fixture.init(&renderer.fixtures)
@@ -34,10 +38,16 @@ unload :: proc(renderer: ^Renderer) {
 }
 
 load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
-	static_level.load_level(&renderer.static_level, state)
+	if current, ok := model.snapshot(state); ok {
+		renderer.transform.coordinates = current.level.coordinates
+	}
 	player.face(&renderer.player, player.DEFAULT_DIRECTION)
 	update_player_target(renderer, state)
-	if bounds, ok := static_level.world_bounds(&renderer.static_level, state); ok {
+	if bounds, ok := static_level.world_bounds(
+		&renderer.static_level,
+		state,
+		&renderer.transform,
+	); ok {
 		camera.fit_bounds(&renderer.camera, bounds)
 	}
 }
@@ -54,15 +64,15 @@ refresh_player :: proc(renderer: ^Renderer, state: ^model.World_State) {
 draw :: proc(
 	renderer: ^Renderer,
 	state: ^model.World_State,
-	animation_queue: ^helpers.Turn_Animation_Queue,
-	mode: helpers.UI_Mode,
+	animation_queue: ^app.Turn_Animation_Queue,
+	mode: app.UI_Mode,
 ) {
 	snapshot, loaded := model.snapshot(state)
 	if !loaded {
 		return
 	}
 
-	progress := animation_queue.tick_elapsed / helpers.TICK_TIME_BUDGET
+	progress := animation_queue.tick_elapsed / app.TICK_TIME_BUDGET
 	progress = clamp(progress, 0, 1)
 
 	camera.update_position(&renderer.camera, mode)
@@ -87,40 +97,41 @@ draw :: proc(
 		}
 	}
 
-	helpers.populate_entity_poses(
+	render.populate_entity_poses(
 		&renderer.entity_poses,
 		current_tick,
 		progress,
-		&renderer.static_level.transform,
+		&renderer.transform,
 	)
 
-	static_level.draw(&renderer.static_level, &snapshot.level)
-	fixture.draw(
-		&renderer.fixtures,
-		&snapshot.level,
-		render_resolved,
-		current_tick,
-		progress,
-		&renderer.static_level.transform,
-	)
+	state_after := render_resolved
+	if current_tick != nil {
+		state_after = &current_tick.state_after
+	}
+
+	frame := render.Frame {
+		level        = &snapshot.level,
+		state_before = render_resolved,
+		state_after  = state_after,
+		progress     = progress,
+		transform    = &renderer.transform,
+		poses        = &renderer.entity_poses,
+	}
+
+	static_level.draw(&renderer.static_level, &frame)
+	fixture.draw(&renderer.fixtures, &frame)
 	if player_entity, ok := model.player_from_resolved(render_resolved); ok {
-		player.draw(
-			&renderer.player,
-			&player_entity,
-			&renderer.static_level.transform,
-			&renderer.entity_poses,
-		)
+		player.draw(&renderer.player, &player_entity, &frame)
 	}
 	object.draw(
 		&renderer.objects,
 		rules.entities_view(render_resolved),
-		&renderer.static_level.transform,
-		&renderer.entity_poses,
+		&frame,
 	)
 }
 
 update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {
-	if target, ok := player.camera_target(state, &renderer.static_level.transform); ok {
+	if target, ok := player.camera_target(state, &renderer.transform); ok {
 		renderer.camera.player_target = target
 	}
 }

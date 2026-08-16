@@ -1,7 +1,7 @@
 // Package world_camera owns the fixed camera used by the shared 3D world render pass.
 package world_camera
 
-import helpers "../helpers"
+import helpers "../../helpers"
 import "core:math"
 import rl "vendor:raylib"
 

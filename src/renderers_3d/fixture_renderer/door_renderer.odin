@@ -9,7 +9,7 @@ DOOR_FOOTPRINT_RATIO :: f32(0.82)
 draw_door :: proc(
 	renderer: ^Renderer,
 	fixture: rules.Fixture,
-	ctx: ^Draw_Context,
+	ctx: ^helpers.Frame,
 	floor_y: f32,
 	open_before: bool,
 	open_after: bool,

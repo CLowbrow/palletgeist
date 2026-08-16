@@ -7,43 +7,35 @@ import helpers "../helpers"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-Renderer :: struct {
-	transform: helpers.Grid_Transform,
-}
+Renderer :: struct {}
 
 init :: proc(renderer: ^Renderer) {
-	renderer.transform.tile_size = 1.0
-	renderer.transform.height_unit = 1.0
+	// TODO: Load shared level models, materials, or shaders here.
 }
 
 unload :: proc(renderer: ^Renderer) {
-	renderer.transform = {}
-}
-
-load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
-	if current, ok := model.snapshot(state); ok {
-		renderer.transform.coordinates = current.level.coordinates
-	}
+	// TODO: Unload resources owned by the static level renderer here.
 }
 
 world_bounds :: proc(
 	renderer: ^Renderer,
 	state: ^model.World_State,
+	transform: ^helpers.Grid_Transform,
 ) -> (
 	bounds: rl.BoundingBox,
 	ok: bool,
 ) {
 	current, loaded := model.snapshot(state)
-	if !loaded || current.level.width == 0 || current.level.height == 0 {
+	if !loaded || transform == nil || current.level.width == 0 || current.level.height == 0 {
 		return
 	}
 	level := &current.level
 
-	origin := renderer.transform.coordinates.origin
+	origin := transform.coordinates.origin
 	opposite := rules.Coordinate{origin.x + i32(level.width) - 1, origin.y + i32(level.height) - 1}
-	first := helpers.coordinate_to_world(&renderer.transform, origin)
-	last := helpers.coordinate_to_world(&renderer.transform, opposite)
-	half_tile := renderer.transform.tile_size * 0.5
+	first := helpers.coordinate_to_world(transform, origin)
+	last := helpers.coordinate_to_world(transform, opposite)
+	half_tile := transform.tile_size * 0.5
 
 	min_x, max_x := first.x, last.x
 	if min_x > max_x {
@@ -56,9 +48,9 @@ world_bounds :: proc(
 
 	max_y: f32
 	for cell in rules.cells_view(level) {
-		height := surface_height(renderer, cell.elevation)
+		height := surface_height(transform, cell.elevation)
 		if cell.kind == .Ramp {
-			height += renderer.transform.height_unit
+			height += transform.height_unit
 		}
 		if height > max_y {
 			max_y = height
@@ -73,13 +65,13 @@ world_bounds :: proc(
 	return
 }
 
-draw :: proc(renderer: ^Renderer, state: ^rules.Level) {
-	for cell in rules.cells_view(state) {
+draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame) {
+	for cell in rules.cells_view(frame.level) {
 		switch cell.kind {
 		case .Flat:
-			draw_flat(renderer, cell)
+			draw_flat(renderer, cell, frame)
 		case .Ramp:
-			draw_ramp(renderer, cell)
+			draw_ramp(renderer, cell, frame)
 		}
 	}
 }
@@ -111,17 +103,17 @@ draw_vertex :: proc(position: rl.Vector3, texcoord: rl.Vector2) {
 	rlgl.Vertex3f(position.x, position.y, position.z)
 }
 
-draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell) {
-	center := helpers.coordinate_to_world(&renderer.transform, cell.coordinate)
-	half := renderer.transform.tile_size * 0.5
+draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {
+	center := helpers.coordinate_to_world(frame.transform, cell.coordinate)
+	half := frame.transform.tile_size * 0.5
 
 	x_min := center.x - half
 	x_max := center.x + half
 	z_min := center.z - half // North
 	z_max := center.z + half // South
 
-	low_y := surface_height(renderer, cell.elevation)
-	high_y := low_y + renderer.transform.height_unit
+	low_y := surface_height(frame.transform, cell.elevation)
+	high_y := low_y + frame.transform.height_unit
 
 	// All ramp solids begin at the same y=0 plane as flat cubes.
 	b_nw := rl.Vector3{x_min, 0, z_min}
@@ -161,10 +153,10 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell) {
 	draw_quad(t_nw, t_sw, t_se, t_ne, rl.LIGHTGRAY)
 }
 
-draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell) {
-	center := helpers.coordinate_to_world(&renderer.transform, cell.coordinate)
-	half := renderer.transform.tile_size * 0.5
-	top_y := surface_height(renderer, cell.elevation)
+draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {
+	center := helpers.coordinate_to_world(frame.transform, cell.coordinate)
+	half := frame.transform.tile_size * 0.5
+	top_y := surface_height(frame.transform, cell.elevation)
 
 	x_min := center.x - half
 	x_max := center.x + half
@@ -190,6 +182,6 @@ draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell) {
 	draw_quad(t_nw, t_sw, t_se, t_ne, rl.LIGHTGRAY)
 }
 
-surface_height :: proc(renderer: ^Renderer, elevation: i32) -> f32 {
-	return helpers.BASE_THICKNESS + f32(elevation) * renderer.transform.height_unit
+surface_height :: proc(transform: ^helpers.Grid_Transform, elevation: i32) -> f32 {
+	return helpers.BASE_THICKNESS + f32(elevation) * transform.height_unit
 }

@@ -1,5 +1,5 @@
 package main
-import helpers "renderers_3d/helpers"
+import helpers "helpers"
 
 update_move_animation :: proc(game: ^Game_State, dt: f32) {
 	queue := &game.animation_queue

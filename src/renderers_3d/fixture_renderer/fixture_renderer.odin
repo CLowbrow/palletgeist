@@ -6,16 +6,6 @@ import rl "vendor:raylib"
 
 Renderer :: struct {}
 
-// Draw_Context contains both ends of the currently animated tick. When no
-// tick is active, state_before and state_after point to the same state and
-// progress is 0.
-Draw_Context :: struct {
-	state_before: ^rules.Resolved_State,
-	state_after:  ^rules.Resolved_State,
-	progress:     f32,
-	transform:    ^helpers.Grid_Transform,
-}
-
 init :: proc(renderer: ^Renderer) {
 	// TODO: Load shared fixture models, materials, or shaders here.
 }
@@ -26,45 +16,38 @@ unload :: proc(renderer: ^Renderer) {
 
 draw :: proc(
 	renderer: ^Renderer,
-	level: ^rules.Level,
-	state_before: ^rules.Resolved_State,
-	current_tick: ^rules.Tick,
-	progress: f32,
-	transform: ^helpers.Grid_Transform,
+	frame: ^helpers.Frame,
 ) {
-	if renderer == nil || level == nil || state_before == nil || transform == nil {
+	if renderer == nil || frame == nil || frame.level == nil || frame.state_before == nil ||
+	   frame.state_after == nil || frame.transform == nil {
 		return
 	}
 
-	state_after := state_before
-	if current_tick != nil {
-		state_after = &current_tick.state_after
-	}
-
-	ctx := Draw_Context {
-		state_before = state_before,
-		state_after  = state_after,
-		progress     = clamp(progress, f32(0), f32(1)),
-		transform    = transform,
-	}
-
-	for fixture in rules.fixtures_view(level) {
-		floor_y, found := fixture_floor_y(level, fixture.coordinate, transform)
+	for fixture in rules.fixtures_view(frame.level) {
+		floor_y, found := fixture_floor_y(frame.level, fixture.coordinate, frame.transform)
 		if !found {
 			continue
 		}
 
 		switch fixture.kind {
 		case .Switch:
-			pressed_before := rules.switch_is_pressed(level, ctx.state_before, fixture.coordinate)
-			pressed_after := rules.switch_is_pressed(level, ctx.state_after, fixture.coordinate)
-			draw_switch(renderer, fixture, &ctx, floor_y, pressed_before, pressed_after)
+			pressed_before := rules.switch_is_pressed(
+				frame.level,
+				frame.state_before,
+				fixture.coordinate,
+			)
+			pressed_after := rules.switch_is_pressed(
+				frame.level,
+				frame.state_after,
+				fixture.coordinate,
+			)
+			draw_switch(renderer, fixture, frame, floor_y, pressed_before, pressed_after)
 		case .Door:
-			open_before := rules.door_is_open(ctx.state_before, fixture.coordinate)
-			open_after := rules.door_is_open(ctx.state_after, fixture.coordinate)
-			draw_door(renderer, fixture, &ctx, floor_y, open_before, open_after)
+			open_before := rules.door_is_open(frame.state_before, fixture.coordinate)
+			open_after := rules.door_is_open(frame.state_after, fixture.coordinate)
+			draw_door(renderer, fixture, frame, floor_y, open_before, open_after)
 		case .Exit:
-			draw_exit(renderer, fixture, &ctx, floor_y)
+			draw_exit(renderer, fixture, frame, floor_y)
 		}
 	}
 }

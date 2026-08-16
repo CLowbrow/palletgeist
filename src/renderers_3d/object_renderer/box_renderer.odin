@@ -7,16 +7,19 @@ import rl "vendor:raylib"
 
 draw_box :: proc(
 	box: rules.Entity,
-	transform: ^helpers.Grid_Transform,
-	poses: ^map[u64]helpers.Entity_Pose,
+	frame: ^helpers.Frame,
 ) {
-	position := helpers.entity_bottom_to_world(transform, box.coordinate, box.bottom_half_steps)
-	if pose, found := poses[box.id]; found {
+	position := helpers.entity_bottom_to_world(
+		frame.transform,
+		box.coordinate,
+		box.bottom_half_steps,
+	)
+	if pose, found := frame.poses[box.id]; found {
 		position = pose.position
 	}
-	box_height := transform.height_unit * 0.5
+	box_height := frame.transform.height_unit * 0.5
 	position.y += box_height * 0.5
 
-	width := transform.tile_size * 0.7
+	width := frame.transform.tile_size * 0.7
 	rl.DrawCube(position, width, box_height, width, rl.BROWN)
 }

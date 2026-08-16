@@ -10,7 +10,7 @@ SWITCH_MAX_HEIGHT_RATIO :: f32(0.08)
 draw_switch :: proc(
 	renderer: ^Renderer,
 	fixture: rules.Fixture,
-	ctx: ^Draw_Context,
+	ctx: ^helpers.Frame,
 	floor_y: f32,
 	pressed_before: bool,
 	pressed_after: bool,

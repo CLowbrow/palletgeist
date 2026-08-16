@@ -1,22 +1,11 @@
-package helpers
+package render_helpers
 
 import rules "../../game_rules"
+import project "../../helpers"
 import "core:math"
-import "core:mem"
 import rl "vendor:raylib"
 
 BASE_THICKNESS :: f32(0.12)
-TICK_TIME_BUDGET :: f32(0.2) //seconds
-
-UI_Mode :: enum {
-	MainMenu,
-	PauseMenu,
-	LevelWon,
-	LevelLost,
-	Playing,
-	LevelSelect,
-	Animating,
-}
 
 Grid_Transform :: struct {
 	coordinates: rules.Coordinate_System,
@@ -37,33 +26,20 @@ coordinate_to_world :: proc(
 	return rl.Vector3{dx * x_sign * transform.tile_size, 0, dy * z_sign * transform.tile_size}
 }
 
-ticks_view :: proc(result: ^rules.Move_Result) -> []rules.Tick {
-	if result == nil || result.tick_count == 0 || result.ticks == nil {
-		return nil
-	}
-
-	return mem.slice_ptr(result.ticks, int(result.tick_count))
-}
-
-events_view :: proc(tick: ^rules.Tick) -> []rules.Event {
-	if tick == nil || tick.event_count == 0 || tick.events == nil {
-		return nil
-	}
-
-	return mem.slice_ptr(tick.events, int(tick.event_count))
-}
-
 Entity_Pose :: struct {
 	position: rl.Vector3,
 	rotation: f32, //optional except player
 }
 
-Turn_Animation_Queue :: struct {
-	initial_state: ^rules.Resolved_State,
-	ticks:         []rules.Tick,
-	tick_index:    int,
-	tick_elapsed:  f32,
-	animating:     bool,
+// Frame is the immutable view shared by every renderer for one world draw.
+// The world renderer owns the transform and pose map referenced here.
+Frame :: struct {
+	level:        ^rules.Level,
+	state_before: ^rules.Resolved_State,
+	state_after:  ^rules.Resolved_State,
+	progress:     f32,
+	transform:    ^Grid_Transform,
+	poses:        ^map[u64]Entity_Pose,
 }
 
 entity_bottom_to_world :: proc(
@@ -91,7 +67,7 @@ populate_entity_poses :: proc(
 	t := clamp(progress, f32(0), f32(1))
 	eased := t * t * (3 - 2 * t)
 
-	for event in events_view(current_tick) {
+	for event in project.events_view(current_tick) {
 		if event.kind != .Entity_Moved {
 			continue
 		}

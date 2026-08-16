@@ -8,15 +8,14 @@ Renderer :: struct {}
 draw :: proc(
 	renderer: ^Renderer,
 	entities: []rules.Entity,
-	transform: ^helpers.Grid_Transform,
-	poses: ^map[u64]helpers.Entity_Pose,
+	frame: ^helpers.Frame,
 ) {
 	for entity in entities {
 		switch entity.kind {
 		case .Box:
-			draw_box(entity, transform, poses)
+			draw_box(entity, frame)
 		case .Barrel:
-			draw_barrel(entity, transform, poses)
+			draw_barrel(entity, frame)
 		case .Player:
 		// The player has its own renderer and render state.
 		}
