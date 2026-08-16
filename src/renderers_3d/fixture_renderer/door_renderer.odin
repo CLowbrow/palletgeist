@@ -11,10 +11,12 @@ draw_door :: proc(
 	fixture: rules.Fixture,
 	ctx: ^Draw_Context,
 	floor_y: f32,
-	height: f32,
+	open_before: bool,
+	open_after: bool,
 ) {
 	// Height is normalized: 0 is fully retracted and 1 is one complete stage
 	// level (Grid_Transform.height_unit).
+	height := animated_retraction_height(open_before, open_after, ctx.progress)
 	normalized_height := clamp(height, f32(0), f32(1))
 	model_height := normalized_height * ctx.transform.height_unit
 	if model_height <= 0 {

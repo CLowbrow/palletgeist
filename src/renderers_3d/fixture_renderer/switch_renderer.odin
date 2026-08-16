@@ -12,10 +12,12 @@ draw_switch :: proc(
 	fixture: rules.Fixture,
 	ctx: ^Draw_Context,
 	floor_y: f32,
-	height: f32,
+	pressed_before: bool,
+	pressed_after: bool,
 ) {
 	// Height is normalized: 0 is fully depressed and 1 is the switch's
 	// deliberately short maximum height.
+	height := animated_retraction_height(pressed_before, pressed_after, ctx.progress)
 	normalized_height := clamp(height, f32(0), f32(1))
 	model_height := normalized_height * ctx.transform.height_unit * SWITCH_MAX_HEIGHT_RATIO
 	if model_height <= 0 {

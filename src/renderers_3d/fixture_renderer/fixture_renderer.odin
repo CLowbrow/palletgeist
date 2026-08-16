@@ -12,7 +12,6 @@ Renderer :: struct {}
 Draw_Context :: struct {
 	state_before: ^rules.Resolved_State,
 	state_after:  ^rules.Resolved_State,
-	current_tick: ^rules.Tick,
 	progress:     f32,
 	transform:    ^helpers.Grid_Transform,
 }
@@ -57,9 +56,13 @@ draw :: proc(
 
 		switch fixture.kind {
 		case .Switch:
-			draw_switch(renderer, fixture, &ctx, floor_y, 1.0)
+			pressed_before := rules.switch_is_pressed(level, ctx.state_before, fixture.coordinate)
+			pressed_after := rules.switch_is_pressed(level, ctx.state_after, fixture.coordinate)
+			draw_switch(renderer, fixture, &ctx, floor_y, pressed_before, pressed_after)
 		case .Door:
-			draw_door(renderer, fixture, &ctx, floor_y, 1.0)
+			open_before := rules.door_is_open(ctx.state_before, fixture.coordinate)
+			open_after := rules.door_is_open(ctx.state_after, fixture.coordinate)
+			draw_door(renderer, fixture, &ctx, floor_y, open_before, open_after)
 		case .Exit:
 			draw_exit(renderer, fixture, &ctx, floor_y)
 		}
@@ -70,7 +73,10 @@ fixture_floor_y :: proc(
 	level: ^rules.Level,
 	coordinate: rules.Coordinate,
 	transform: ^helpers.Grid_Transform,
-) -> (floor_y: f32, found: bool) {
+) -> (
+	floor_y: f32,
+	found: bool,
+) {
 	for cell in rules.cells_view(level) {
 		if cell.coordinate == coordinate {
 			floor_y = helpers.BASE_THICKNESS + f32(cell.elevation) * transform.height_unit
@@ -80,6 +86,27 @@ fixture_floor_y :: proc(
 	}
 
 	return
+}
+
+animated_retraction_height :: proc(
+	retracted_before: bool,
+	retracted_after: bool,
+	progress: f32,
+) -> f32 {
+	height_before: f32 = 1
+	if retracted_before {
+		height_before = 0
+	}
+
+	height_after: f32 = 1
+	if retracted_after {
+		height_after = 0
+	}
+
+	// Animations happen at the very end of the window cuz it looks better
+	t := clamp(progress * 3 - 2, f32(0), f32(1))
+	eased := t * t * (3 - 2 * t)
+	return height_before + (height_after - height_before) * eased
 }
 
 fixture_color :: proc(color: rules.Color) -> rl.Color {

@@ -45,3 +45,49 @@ open_doors_view :: proc(state: ^Resolved_State) -> []Coordinate {
 	}
 	return mem.slice_ptr(state.open_doors, int(state.open_door_count))
 }
+
+switch_is_pressed :: proc(
+	level: ^Level,
+	state: ^Resolved_State,
+	coordinate: Coordinate,
+) -> bool {
+	if level == nil || state == nil {
+		return false
+	}
+
+	floor_half_steps: i32
+	found_cell := false
+	for cell in cells_view(level) {
+		if cell.coordinate != coordinate {
+			continue
+		}
+		if cell.kind != .Flat {
+			return false
+		}
+
+		floor_half_steps = cell.elevation * 2
+		found_cell = true
+		break
+	}
+	if !found_cell {
+		return false
+	}
+
+	for entity in entities_view(state) {
+		if entity.coordinate == coordinate && entity.bottom_half_steps == floor_half_steps {
+			return true
+		}
+	}
+
+	return false
+}
+
+door_is_open :: proc(state: ^Resolved_State, coordinate: Coordinate) -> bool {
+	for open_coordinate in open_doors_view(state) {
+		if open_coordinate == coordinate {
+			return true
+		}
+	}
+
+	return false
+}
