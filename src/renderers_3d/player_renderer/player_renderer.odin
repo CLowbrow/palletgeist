@@ -4,6 +4,7 @@ package player_renderer
 import rules "../../game_rules"
 import model "../../game_state"
 import "../helpers"
+import "core:math"
 import rl "vendor:raylib"
 
 MODEL_PATH :: "assets/Gorker.glb"
@@ -11,11 +12,11 @@ MODEL_FOOTPRINT_RATIO :: f32(0.72)
 DEFAULT_DIRECTION :: rules.Direction.South
 
 Renderer :: struct {
-	model:           rl.Model,
-	model_bounds:    rl.BoundingBox,
-	model_shaders:   []rl.Shader,
-	direction:       rules.Direction,
-	model_loaded:    bool,
+	model:         rl.Model,
+	model_bounds:  rl.BoundingBox,
+	model_shaders: []rl.Shader,
+	direction:     rules.Direction,
+	model_loaded:  bool,
 }
 
 init :: proc(renderer: ^Renderer) {
@@ -25,7 +26,8 @@ init :: proc(renderer: ^Renderer) {
 		renderer.model_bounds = rl.GetModelBoundingBox(renderer.model)
 		renderer.model_shaders = make([]rl.Shader, int(renderer.model.materialCount))
 		for material_index in 0 ..< int(renderer.model.materialCount) {
-			renderer.model_shaders[material_index] = renderer.model.materials[material_index].shader
+			renderer.model_shaders[material_index] =
+				renderer.model.materials[material_index].shader
 		}
 	}
 
@@ -65,7 +67,10 @@ face :: proc(renderer: ^Renderer, direction: rules.Direction) {
 }
 
 player_draw_position :: proc(universal_position: ^[3]f32, model_bottom: f32, scale: f32) {
-	universal_position.y -= model_bottom * scale
+	//bob
+	time := rl.GetTime()
+	smoothed := math.sin_f32(f32(time))
+	universal_position.y -= model_bottom * scale + smoothed * .05 - .1
 }
 
 camera_target :: proc(
