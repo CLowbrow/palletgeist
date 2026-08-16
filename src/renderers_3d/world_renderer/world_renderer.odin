@@ -30,13 +30,16 @@ init :: proc(renderer: ^Renderer) {
 	static_level.init(&renderer.static_level)
 	fixture.init(&renderer.fixtures)
 	player.init(&renderer.player)
+	object.init(&renderer.objects)
 	if renderer.lighting.ready {
 		player.set_shader(&renderer.player, renderer.lighting.shader)
+		object.set_shader(&renderer.objects, renderer.lighting.shader)
 	}
 }
 
 unload :: proc(renderer: ^Renderer) {
 	delete(renderer.entity_poses)
+	object.unload(&renderer.objects)
 	player.unload(&renderer.player)
 	fixture.unload(&renderer.fixtures)
 	static_level.unload(&renderer.static_level)
@@ -124,11 +127,13 @@ draw :: proc(
 		// texture unit is unbound, and binding the active depth target would create
 		// an invalid OpenGL feedback loop. Use the model's normal shaders instead.
 		player.restore_model_shaders(&renderer.player)
+		object.restore_model_shaders(&renderer.objects)
 		begin_shadow_pass(&renderer.lighting)
 		draw_scene(renderer, &frame, render_resolved)
 		end_shadow_pass(&renderer.lighting)
 
 		player.set_shader(&renderer.player, renderer.lighting.shader)
+		object.set_shader(&renderer.objects, renderer.lighting.shader)
 		begin_lit_pass(&renderer.lighting)
 		camera.begin(&renderer.camera)
 		draw_scene(renderer, &frame, render_resolved)

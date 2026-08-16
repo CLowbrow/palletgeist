@@ -8,7 +8,7 @@ import "core:math"
 import rl "vendor:raylib"
 
 MODEL_PATH :: "assets/Gorker.glb"
-MODEL_FOOTPRINT_RATIO :: f32(0.72)
+MODEL_FOOTPRINT_RATIO :: f32(0.8)
 DEFAULT_DIRECTION :: rules.Direction.South
 
 Renderer :: struct {
