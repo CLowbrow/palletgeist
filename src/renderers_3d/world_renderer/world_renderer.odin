@@ -120,10 +120,15 @@ draw :: proc(
 
 	camera.update_position(&renderer.camera, mode)
 	if renderer.lighting.ready {
+		// The lighting shader cannot sample the shadow map during this pass: its
+		// texture unit is unbound, and binding the active depth target would create
+		// an invalid OpenGL feedback loop. Use the model's normal shaders instead.
+		player.restore_model_shaders(&renderer.player)
 		begin_shadow_pass(&renderer.lighting)
 		draw_scene(renderer, &frame, render_resolved)
 		end_shadow_pass(&renderer.lighting)
 
+		player.set_shader(&renderer.player, renderer.lighting.shader)
 		begin_lit_pass(&renderer.lighting)
 		camera.begin(&renderer.camera)
 		draw_scene(renderer, &frame, render_resolved)

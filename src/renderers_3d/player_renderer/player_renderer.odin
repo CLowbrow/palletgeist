@@ -11,10 +11,11 @@ MODEL_FOOTPRINT_RATIO :: f32(0.72)
 DEFAULT_DIRECTION :: rules.Direction.South
 
 Renderer :: struct {
-	model:        rl.Model,
-	model_bounds: rl.BoundingBox,
-	direction:    rules.Direction,
-	model_loaded: bool,
+	model:           rl.Model,
+	model_bounds:    rl.BoundingBox,
+	model_shaders:   []rl.Shader,
+	direction:       rules.Direction,
+	model_loaded:    bool,
 }
 
 init :: proc(renderer: ^Renderer) {
@@ -22,6 +23,10 @@ init :: proc(renderer: ^Renderer) {
 	renderer.model_loaded = rl.IsModelValid(renderer.model)
 	if renderer.model_loaded {
 		renderer.model_bounds = rl.GetModelBoundingBox(renderer.model)
+		renderer.model_shaders = make([]rl.Shader, int(renderer.model.materialCount))
+		for material_index in 0 ..< int(renderer.model.materialCount) {
+			renderer.model_shaders[material_index] = renderer.model.materials[material_index].shader
+		}
 	}
 
 	renderer.direction = DEFAULT_DIRECTION
@@ -31,6 +36,7 @@ unload :: proc(renderer: ^Renderer) {
 	if renderer.model_loaded {
 		rl.UnloadModel(renderer.model)
 	}
+	delete(renderer.model_shaders)
 	renderer.model_loaded = false
 }
 
@@ -41,6 +47,16 @@ set_shader :: proc(renderer: ^Renderer, shader: rl.Shader) {
 
 	for material_index in 0 ..< int(renderer.model.materialCount) {
 		renderer.model.materials[material_index].shader = shader
+	}
+}
+
+restore_model_shaders :: proc(renderer: ^Renderer) {
+	if !renderer.model_loaded {
+		return
+	}
+
+	for material_index in 0 ..< int(renderer.model.materialCount) {
+		renderer.model.materials[material_index].shader = renderer.model_shaders[material_index]
 	}
 }
 
