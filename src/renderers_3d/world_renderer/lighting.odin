@@ -5,12 +5,12 @@ import "core:log"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-SHADOW_VERTEX_SHADER_PATH   :: "assets/shaders/shadowmap.vs"
+SHADOW_VERTEX_SHADER_PATH :: "assets/shaders/shadowmap.vs"
 SHADOW_FRAGMENT_SHADER_PATH :: "assets/shaders/shadowmap.fs"
-SHADOW_MAP_RESOLUTION       :: 2048
-SHADOW_TEXTURE_SLOT         :: 10
-MIN_LIGHT_VIEW_SPAN         :: f32(6)
-LIGHT_VIEW_PADDING          :: f32(3)
+SHADOW_MAP_RESOLUTION :: 4096
+SHADOW_TEXTURE_SLOT :: 10
+MIN_LIGHT_VIEW_SPAN :: f32(6)
+LIGHT_VIEW_PADDING :: f32(3)
 
 Lighting :: struct {
 	shader:                         rl.Shader,
@@ -32,8 +32,7 @@ init_lighting :: proc(lighting: ^Lighting) {
 		return
 	}
 
-	lighting.light_view_projection_location =
-		rl.GetShaderLocation(lighting.shader, "lightVP")
+	lighting.light_view_projection_location = rl.GetShaderLocation(lighting.shader, "lightVP")
 	lighting.shadow_map_location = rl.GetShaderLocation(lighting.shader, "shadowMap")
 
 	lighting.light_direction = rl.Vector3Normalize(rl.Vector3{0.45, -1.0, -0.35})

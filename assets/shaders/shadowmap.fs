@@ -55,6 +55,7 @@ void main()
     vec3 directionToLight = -lightDir;
     float diffuse = max(dot(normal, directionToLight), 0.0);
     float visibility = shadow_visibility(normal, directionToLight);
+    visibility = mix(1.0, visibility, 0.4);
 
     vec3 lighting = ambient.rgb + lightColor.rgb*diffuse*visibility;
     finalColor = vec4(baseColor.rgb*lighting, baseColor.a);
