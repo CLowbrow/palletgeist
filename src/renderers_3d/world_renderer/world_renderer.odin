@@ -3,6 +3,7 @@ package world_renderer
 import rules "../../game_rules"
 import model "../../game_state"
 import helpers "../helpers"
+import fixture "../fixture_renderer"
 import object "../object_renderer"
 import player "../player_renderer"
 import static_level "../static_level_renderer"
@@ -11,6 +12,7 @@ import camera "../world_camera"
 Renderer :: struct {
 	camera:       camera.Camera,
 	static_level: static_level.Renderer,
+	fixtures:     fixture.Renderer,
 	player:       player.Renderer,
 	objects:      object.Renderer,
 	entity_poses: map[u64]helpers.Entity_Pose,
@@ -20,12 +22,14 @@ init :: proc(renderer: ^Renderer) {
 	renderer.entity_poses = make(map[u64]helpers.Entity_Pose)
 	camera.init(&renderer.camera)
 	static_level.init(&renderer.static_level)
+	fixture.init(&renderer.fixtures)
 	player.init(&renderer.player)
 }
 
 unload :: proc(renderer: ^Renderer) {
 	delete(renderer.entity_poses)
 	player.unload(&renderer.player)
+	fixture.unload(&renderer.fixtures)
 	static_level.unload(&renderer.static_level)
 }
 
@@ -91,6 +95,14 @@ draw :: proc(
 	)
 
 	static_level.draw(&renderer.static_level, &snapshot.level)
+	fixture.draw(
+		&renderer.fixtures,
+		&snapshot.level,
+		render_resolved,
+		current_tick,
+		progress,
+		&renderer.static_level.transform,
+	)
 	if player_entity, ok := model.player_from_resolved(render_resolved); ok {
 		player.draw(
 			&renderer.player,
