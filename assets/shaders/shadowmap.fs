@@ -18,6 +18,12 @@ uniform int shadowMapResolution;
 
 out vec4 finalColor;
 
+float compare_shadow_depth(ivec2 texel, float receiverDepth)
+{
+    float closestDepth = texelFetch(shadowMap, texel, 0).r;
+    return receiverDepth <= closestDepth ? 1.0 : 0.0;
+}
+
 float shadow_visibility(vec3 normal, vec3 directionToLight)
 {
     vec4 lightSpacePosition = lightVP*vec4(fragPosition, 1.0);
@@ -33,19 +39,29 @@ float shadow_visibility(vec3 normal, vec3 directionToLight)
     }
 
     float bias = max(0.0002*(1.0 - dot(normal, directionToLight)), 0.00002) + 0.00001;
-    vec2 texelSize = vec2(1.0/float(shadowMapResolution));
-    float occludedSamples = 0.0;
+    float receiverDepth = projected.z - bias;
 
-    for (int x = -1; x <= 1; x++)
+    // Compare a deliberately broad box around the receiver. Unlike bilinear
+    // interpolation or a center-weighted tent, this increases the actual
+    // penumbra width instead of only smoothing transitions between texels.
+    vec2 texelPosition = projected.xy*float(shadowMapResolution) - vec2(0.5);
+    ivec2 baseTexel = ivec2(floor(texelPosition));
+    ivec2 maxTexel = ivec2(shadowMapResolution - 1);
+
+    const int filterRadius = 2;
+    float visibility = 0.0;
+    float sampleCount = 0.0;
+    for (int y = -filterRadius; y <= filterRadius; y++)
     {
-        for (int y = -1; y <= 1; y++)
+        for (int x = -filterRadius; x <= filterRadius; x++)
         {
-            float closestDepth = texture(shadowMap, projected.xy + vec2(x, y)*texelSize).r;
-            occludedSamples += projected.z - bias > closestDepth ? 1.0 : 0.0;
+            ivec2 texel = clamp(baseTexel + ivec2(x, y), ivec2(0), maxTexel);
+            visibility += compare_shadow_depth(texel, receiverDepth);
+            sampleCount += 1.0;
         }
     }
 
-    return 1.0 - occludedSamples/9.0;
+    return visibility/sampleCount;
 }
 
 void main()

@@ -7,7 +7,7 @@ import rlgl "vendor:raylib/rlgl"
 
 SHADOW_VERTEX_SHADER_PATH :: "assets/shaders/shadowmap.vs"
 SHADOW_FRAGMENT_SHADER_PATH :: "assets/shaders/shadowmap.fs"
-SHADOW_MAP_RESOLUTION :: 4096
+SHADOW_MAP_RESOLUTION :: 1080
 SHADOW_TEXTURE_SLOT :: 10
 MIN_LIGHT_VIEW_SPAN :: f32(6)
 LIGHT_VIEW_PADDING :: f32(3)
