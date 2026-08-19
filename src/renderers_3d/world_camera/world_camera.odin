@@ -9,11 +9,17 @@ PLAYER_VIEW_SPAN :: f32(2.5)
 MIN_LEVEL_VIEW_SPAN :: f32(4)
 FOV :: f32(35)
 
+// Max changes to camera position assuming 60fps
+MAX_POSITION_CHANGE :: f32(0.5)
+MAX_TARGET_CHANGE :: f32(0.15)
+MAX_FOV_CHANGE :: f32(1)
+
 Camera :: struct {
-	raylib:          rl.Camera3D,
+	render_camera:   rl.Camera3D,
 	level_target:    rl.Vector3,
 	level_view_span: f32,
 	player_target:   rl.Vector3,
+	camera_next:     rl.Camera3D,
 }
 
 Angle :: enum {
@@ -22,7 +28,11 @@ Angle :: enum {
 }
 
 init :: proc(camera: ^Camera) {
-	camera.raylib.up = rl.Vector3{0, 1, 0}
+	camera.render_camera.up = rl.Vector3{0, 1, 0}
+}
+
+unload :: proc(Camera: ^Camera) {
+
 }
 
 fit_bounds :: proc(camera: ^Camera, bounds: rl.BoundingBox) {
@@ -36,7 +46,7 @@ fit_bounds :: proc(camera: ^Camera, bounds: rl.BoundingBox) {
 }
 
 begin :: proc(camera: ^Camera) {
-	rl.BeginMode3D(camera.raylib)
+	rl.BeginMode3D(camera.render_camera)
 }
 
 end :: proc() {
@@ -52,8 +62,8 @@ focus_player :: proc(camera: ^Camera) {
 }
 
 focus :: proc(camera: ^Camera, target: rl.Vector3, view_span: f32, angle: Angle) {
-	camera.raylib.target = target
-	camera.raylib.fovy = FOV
+	camera.camera_next.target = target
+	camera.camera_next.fovy = FOV
 	half_fov_radians := FOV * 0.5 * math.PI / 180.0
 	distance := view_span / 2 / math.tan(half_fov_radians) * 1.2
 
@@ -66,15 +76,41 @@ focus :: proc(camera: ^Camera, target: rl.Vector3, view_span: f32, angle: Angle)
 		z_offset = distance / sqrt_5
 	}
 
-	camera.raylib.position = rl.Vector3{target.x, target.y + y_offset, target.z + z_offset}
+	camera.camera_next.position = rl.Vector3{target.x, target.y + y_offset, target.z + z_offset}
 }
 
 
 // Want to zoom in on the player model whenever you're not playing
 update_position :: proc(camera: ^Camera, mode: helpers.UI_Mode) {
-	if mode == .Playing {
+	if mode == .Playing || mode == .LevelSelect {
 		focus_level(camera)
 	} else {
 		focus_player(camera)
 	}
+
+	move_camera(camera)
+}
+
+move_camera :: proc(camera: ^Camera) {
+	frame_scale := rl.GetFrameTime() * 60
+
+	position_frames :=
+		rl.Vector3Distance(camera.render_camera.position, camera.camera_next.position) /
+		MAX_POSITION_CHANGE
+	target_frames :=
+		rl.Vector3Distance(camera.render_camera.target, camera.camera_next.target) /
+		MAX_TARGET_CHANGE
+	fov_frames := abs(camera.camera_next.fovy - camera.render_camera.fovy) / MAX_FOV_CHANGE
+	frames_remaining := max(position_frames, target_frames, fov_frames)
+
+	progress := f32(1)
+	if frames_remaining > frame_scale {
+		progress = frame_scale / frames_remaining
+	}
+
+	camera.render_camera.position +=
+		(camera.camera_next.position - camera.render_camera.position) * progress
+	camera.render_camera.target +=
+		(camera.camera_next.target - camera.render_camera.target) * progress
+	camera.render_camera.fovy += (camera.camera_next.fovy - camera.render_camera.fovy) * progress
 }

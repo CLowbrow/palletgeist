@@ -27,8 +27,7 @@ barrel_model_init :: proc(asset: ^Barrel_Model, path: cstring) {
 		asset.model_bounds = rl.GetModelBoundingBox(asset.model)
 		asset.model_shaders = make([]rl.Shader, int(asset.model.materialCount))
 		for material_index in 0 ..< int(asset.model.materialCount) {
-			asset.model_shaders[material_index] =
-				asset.model.materials[material_index].shader
+			asset.model_shaders[material_index] = asset.model.materials[material_index].shader
 		}
 	}
 }
@@ -97,7 +96,7 @@ draw_barrel :: proc(renderer: ^Barrel_Renderer, barrel: rules.Entity, frame: ^he
 	armed_after := barrel_is_armed(frame.state_after, barrel.id)
 	if (armed_before || armed_after) && renderer.damaged.model_loaded {
 		asset = &renderer.damaged
-		rotation = 90
+		rotation = 0
 	}
 	if !asset.model_loaded {
 		return
