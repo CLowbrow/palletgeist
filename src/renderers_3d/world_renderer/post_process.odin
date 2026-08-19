@@ -5,20 +5,31 @@ import "core:log"
 import rl "vendor:raylib"
 
 PALETTE_FRAGMENT_SHADER_PATH :: "assets/shaders/resurrect_64.fs"
-MAX_SCENE_DIMENSION :: c.int(1080)
+SOFT_UPSCALE_FRAGMENT_SHADER_PATH :: "assets/shaders/soft_pixel_upscale.fs"
+MAX_SCENE_DIMENSION :: c.int(720)
 
 Post_Process :: struct {
-	scene_target:   rl.RenderTexture2D,
-	palette_target: rl.RenderTexture2D,
-	palette_shader: rl.Shader,
-	width:          c.int,
-	height:         c.int,
+	scene_target:        rl.RenderTexture2D,
+	palette_target:      rl.RenderTexture2D,
+	palette_shader:      rl.Shader,
+	soft_upscale_shader: rl.Shader,
+	width:               c.int,
+	height:              c.int,
 }
 
 init_post_process :: proc(post: ^Post_Process) {
 	post.palette_shader = rl.LoadShader(nil, PALETTE_FRAGMENT_SHADER_PATH)
 	if !rl.IsShaderValid(post.palette_shader) {
-		log.error("Could not load the Resurrect 64 post-process shader; rendering the world directly")
+		log.error(
+			"Could not load the Resurrect 64 post-process shader; rendering the world directly",
+		)
+	}
+
+	post.soft_upscale_shader = rl.LoadShader(nil, SOFT_UPSCALE_FRAGMENT_SHADER_PATH)
+	if !rl.IsShaderValid(post.soft_upscale_shader) {
+		log.error(
+			"Could not load the soft pixel upscale shader; presenting with bilinear filtering",
+		)
 	}
 }
 
@@ -32,6 +43,9 @@ unload_post_process :: proc(post: ^Post_Process) {
 	if rl.IsShaderValid(post.palette_shader) {
 		rl.UnloadShader(post.palette_shader)
 	}
+	if rl.IsShaderValid(post.soft_upscale_shader) {
+		rl.UnloadShader(post.soft_upscale_shader)
+	}
 	post^ = {}
 }
 
@@ -44,7 +58,8 @@ prepare_post_process :: proc(post: ^Post_Process) -> bool {
 	if width <= 0 || height <= 0 {
 		return false
 	}
-	if width == post.width && height == post.height &&
+	if width == post.width &&
+	   height == post.height &&
 	   rl.IsRenderTextureValid(post.scene_target) &&
 	   rl.IsRenderTextureValid(post.palette_target) {
 		return true
@@ -59,7 +74,11 @@ prepare_post_process :: proc(post: ^Post_Process) -> bool {
 		if rl.IsRenderTextureValid(new_scene) {
 			rl.UnloadRenderTexture(new_scene)
 		}
-		log.errorf("Could not create %dx%d world post-process targets; rendering the world directly", width, height)
+		log.errorf(
+			"Could not create %dx%d world post-process targets; rendering the world directly",
+			width,
+			height,
+		)
 		return false
 	}
 
@@ -74,9 +93,9 @@ prepare_post_process :: proc(post: ^Post_Process) -> bool {
 	post.palette_target = new_palette
 	post.width = width
 	post.height = height
-	// Point filtering ensures the final upscale cannot introduce colors outside
-	// the selected palette.
-	rl.SetTextureFilter(post.palette_target.texture, .POINT)
+	// The upscale shader warps bilinear sampling so only the narrow boundary
+	// between source pixels is blended; the center of each pixel stays solid.
+	rl.SetTextureFilter(post.palette_target.texture, .BILINEAR)
 	return true
 }
 
@@ -92,10 +111,16 @@ capped_scene_size :: proc(window_width, window_height: c.int) -> (width, height:
 
 	if window_width >= window_height {
 		width = MAX_SCENE_DIMENSION
-		height = max(c.int(f32(window_height)*f32(MAX_SCENE_DIMENSION)/f32(window_width) + 0.5), 1)
+		height = max(
+			c.int(f32(window_height) * f32(MAX_SCENE_DIMENSION) / f32(window_width) + 0.5),
+			1,
+		)
 	} else {
 		height = MAX_SCENE_DIMENSION
-		width = max(c.int(f32(window_width)*f32(MAX_SCENE_DIMENSION)/f32(window_height) + 0.5), 1)
+		width = max(
+			c.int(f32(window_width) * f32(MAX_SCENE_DIMENSION) / f32(window_height) + 0.5),
+			1,
+		)
 	}
 	return
 }
@@ -116,11 +141,12 @@ end_scene_pass_and_present :: proc(post: ^Post_Process) {
 	rl.EndShaderMode()
 	rl.EndTextureMode()
 
-	window_target := rl.Rectangle {
-		0,
-		0,
-		f32(rl.GetScreenWidth()),
-		f32(rl.GetScreenHeight()),
+	window_target := rl.Rectangle{0, 0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
+	if rl.IsShaderValid(post.soft_upscale_shader) {
+		rl.BeginShaderMode(post.soft_upscale_shader)
 	}
 	rl.DrawTexturePro(post.palette_target.texture, source, window_target, {}, 0, rl.WHITE)
+	if rl.IsShaderValid(post.soft_upscale_shader) {
+		rl.EndShaderMode()
+	}
 }

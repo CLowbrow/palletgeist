@@ -51,7 +51,7 @@ main :: proc() {
 	}
 	defer rules.dispose_move_result(&game.retained_result)
 
-	rl.SetConfigFlags({.WINDOW_RESIZABLE, .MSAA_4X_HINT})
+	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 	rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
 	defer rl.CloseWindow()
