@@ -19,11 +19,13 @@ Renderer :: struct {
 	objects:      object.Renderer,
 	entity_poses: map[u64]render.Entity_Pose,
 	lighting:     Lighting,
+	snapCamera:   bool,
 }
 
 init :: proc(renderer: ^Renderer) {
 	renderer.transform.tile_size = 1.0
 	renderer.transform.height_unit = 1.0
+	renderer.snapCamera = true
 	renderer.entity_poses = make(map[u64]render.Entity_Pose)
 	init_lighting(&renderer.lighting)
 	camera.init(&renderer.camera)
@@ -57,6 +59,7 @@ load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
 		camera.fit_bounds(&renderer.camera, bounds)
 		fit_light_to_bounds(&renderer.lighting, bounds)
 	}
+	renderer.snapCamera = true
 }
 
 update_player :: proc(renderer: ^Renderer, state: ^model.World_State, direction: rules.Direction) {
@@ -121,7 +124,8 @@ draw :: proc(
 		poses        = &renderer.entity_poses,
 	}
 
-	camera.update_position(&renderer.camera, mode)
+	camera.update_position(&renderer.camera, mode, renderer.snapCamera)
+	renderer.snapCamera = false
 	if renderer.lighting.ready {
 		// The lighting shader cannot sample the shadow map during this pass: its
 		// texture unit is unbound, and binding the active depth target would create
@@ -129,30 +133,35 @@ draw :: proc(
 		player.restore_model_shaders(&renderer.player)
 		object.restore_model_shaders(&renderer.objects)
 		begin_shadow_pass(&renderer.lighting)
-		draw_scene(renderer, &frame, render_resolved)
+		draw_scene(renderer, &frame, render_resolved, true)
 		end_shadow_pass(&renderer.lighting)
 
 		player.set_shader(&renderer.player, renderer.lighting.shader)
 		object.set_shader(&renderer.objects, renderer.lighting.shader)
 		begin_lit_pass(&renderer.lighting)
 		camera.begin(&renderer.camera)
-		draw_scene(renderer, &frame, render_resolved)
+		draw_scene(renderer, &frame, render_resolved, false)
 		camera.end()
 		end_lit_pass(&renderer.lighting)
 	} else {
 		camera.begin(&renderer.camera)
-		draw_scene(renderer, &frame, render_resolved)
+		draw_scene(renderer, &frame, render_resolved, false)
 		camera.end()
 	}
 }
 
-draw_scene :: proc(renderer: ^Renderer, frame: ^render.Frame, resolved: ^rules.Resolved_State) {
+draw_scene :: proc(
+	renderer: ^Renderer,
+	frame: ^render.Frame,
+	resolved: ^rules.Resolved_State,
+	shadow_pass: bool,
+) {
 	static_level.draw(&renderer.static_level, frame)
-	fixture.draw(&renderer.fixtures, frame)
 	if player_entity, ok := model.player_from_resolved(resolved); ok {
 		player.draw(&renderer.player, &player_entity, frame)
 	}
 	object.draw(&renderer.objects, rules.entities_view(resolved), frame)
+	fixture.draw(&renderer.fixtures, frame, shadow_pass)
 }
 
 update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {

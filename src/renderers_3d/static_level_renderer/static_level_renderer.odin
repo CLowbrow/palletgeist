@@ -114,6 +114,12 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 
 	low_y := surface_height(frame.transform, cell.elevation)
 	high_y := low_y + frame.transform.height_unit
+	top_color := rl.Color {
+		u8(200 - 10 * cell.elevation),
+		u8(200 - 10 * cell.elevation),
+		u8(200 - 10 * cell.elevation),
+		255,
+	}
 
 	// All ramp solids begin at the same y=0 plane as flat cubes.
 	b_nw := rl.Vector3{x_min, 0, z_min}
@@ -150,13 +156,20 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
 
 	// Top
-	draw_quad(t_nw, t_sw, t_se, t_ne, rl.LIGHTGRAY)
+	draw_quad(t_nw, t_sw, t_se, t_ne, top_color)
 }
 
 draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {
 	center := helpers.coordinate_to_world(frame.transform, cell.coordinate)
 	half := frame.transform.tile_size * 0.5
 	top_y := surface_height(frame.transform, cell.elevation)
+	top_color := rl.Color {
+		u8(200 - 10 * cell.elevation),
+		u8(200 - 10 * cell.elevation),
+		u8(200 - 10 * cell.elevation),
+		255,
+	}
+
 
 	x_min := center.x - half
 	x_max := center.x + half
@@ -179,7 +192,7 @@ draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 	draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
 	draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
 	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
-	draw_quad(t_nw, t_sw, t_se, t_ne, rl.LIGHTGRAY)
+	draw_quad(t_nw, t_sw, t_se, t_ne, top_color)
 }
 
 surface_height :: proc(transform: ^helpers.Grid_Transform, elevation: i32) -> f32 {

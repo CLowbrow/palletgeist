@@ -81,14 +81,24 @@ focus :: proc(camera: ^Camera, target: rl.Vector3, view_span: f32, angle: Angle)
 
 
 // Want to zoom in on the player model whenever you're not playing
-update_position :: proc(camera: ^Camera, mode: helpers.UI_Mode) {
+update_position :: proc(camera: ^Camera, mode: helpers.UI_Mode, immediate: bool) {
 	if mode == .Playing || mode == .LevelSelect {
 		focus_level(camera)
 	} else {
 		focus_player(camera)
 	}
 
-	move_camera(camera)
+	if (immediate) {
+		move_camera_immediate(camera)
+	} else {
+		move_camera(camera)
+	}
+}
+
+move_camera_immediate :: proc(camera: ^Camera) {
+	camera.render_camera.position = camera.camera_next.position
+	camera.render_camera.fovy = camera.camera_next.fovy
+	camera.render_camera.target = camera.camera_next.target
 }
 
 move_camera :: proc(camera: ^Camera) {

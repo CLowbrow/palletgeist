@@ -14,7 +14,7 @@ unload :: proc(renderer: ^Renderer) {
 	// TODO: Unload resources owned by the fixture renderer here.
 }
 
-draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame) {
+draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame, shadow_pass: bool) {
 	if renderer == nil ||
 	   frame == nil ||
 	   frame.level == nil ||
@@ -44,6 +44,9 @@ draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame) {
 			)
 			draw_switch(renderer, fixture, frame, floor_y, pressed_before, pressed_after)
 		case .Door:
+			if (shadow_pass) {
+				break
+			}
 			open_before := rules.door_is_open(frame.state_before, fixture.coordinate)
 			open_after := rules.door_is_open(frame.state_after, fixture.coordinate)
 			draw_door(renderer, fixture, frame, floor_y, open_before, open_after)
