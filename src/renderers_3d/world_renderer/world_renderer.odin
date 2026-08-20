@@ -9,6 +9,7 @@ import object "../object_renderer"
 import player "../player_renderer"
 import static_level "../static_level_renderer"
 import camera "../world_camera"
+import rl "vendor:raylib"
 
 Renderer :: struct {
 	camera:       camera.Camera,
@@ -19,6 +20,7 @@ Renderer :: struct {
 	objects:      object.Renderer,
 	entity_poses: map[u64]render.Entity_Pose,
 	lighting:     Lighting,
+	post_process: Post_Process,
 	snapCamera:   bool,
 }
 
@@ -28,6 +30,7 @@ init :: proc(renderer: ^Renderer) {
 	renderer.snapCamera = true
 	renderer.entity_poses = make(map[u64]render.Entity_Pose)
 	init_lighting(&renderer.lighting)
+	init_post_process(&renderer.post_process)
 	camera.init(&renderer.camera)
 	static_level.init(&renderer.static_level)
 	fixture.init(&renderer.fixtures)
@@ -45,6 +48,7 @@ unload :: proc(renderer: ^Renderer) {
 	player.unload(&renderer.player)
 	fixture.unload(&renderer.fixtures)
 	static_level.unload(&renderer.static_level)
+	unload_post_process(&renderer.post_process)
 	unload_lighting(&renderer.lighting)
 }
 
@@ -127,6 +131,7 @@ draw :: proc(
 
 	camera.update_position(&renderer.camera, mode, renderer.snapCamera)
 	renderer.snapCamera = false
+	render_to_texture := prepare_post_process(&renderer.post_process)
 	if renderer.lighting.ready {
 		// The lighting shader cannot sample the shadow map during this pass: its
 		// texture unit is unbound, and binding the active depth target would create
@@ -137,6 +142,10 @@ draw :: proc(
 		draw_scene(renderer, &frame, render_resolved, true)
 		end_shadow_pass(&renderer.lighting)
 
+		if render_to_texture {
+			begin_scene_pass(&renderer.post_process)
+		}
+		rl.ClearBackground(rl.Color{20, 22, 28, 255})
 		player.set_shader(&renderer.player, renderer.lighting.shader)
 		object.set_shader(&renderer.objects, renderer.lighting.shader)
 		begin_lit_pass(&renderer.lighting)
@@ -145,9 +154,17 @@ draw :: proc(
 		camera.end()
 		end_lit_pass(&renderer.lighting)
 	} else {
+		if render_to_texture {
+			begin_scene_pass(&renderer.post_process)
+		}
+		rl.ClearBackground(rl.Color{20, 22, 28, 255})
 		camera.begin(&renderer.camera)
 		draw_scene(renderer, &frame, render_resolved, false)
 		camera.end()
+	}
+
+	if render_to_texture {
+		end_scene_pass_and_present(&renderer.post_process)
 	}
 }
 
