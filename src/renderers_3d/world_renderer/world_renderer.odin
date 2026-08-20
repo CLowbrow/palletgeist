@@ -3,6 +3,7 @@ package world_renderer
 import rules "../../game_rules"
 import model "../../game_state"
 import app "../../helpers"
+import explosion "../explosion_renderer"
 import fixture "../fixture_renderer"
 import render "../helpers"
 import object "../object_renderer"
@@ -15,6 +16,7 @@ Renderer :: struct {
 	transform:    render.Grid_Transform,
 	static_level: static_level.Renderer,
 	fixtures:     fixture.Renderer,
+	explosions:   explosion.Renderer,
 	player:       player.Renderer,
 	objects:      object.Renderer,
 	entity_poses: map[u64]render.Entity_Pose,
@@ -31,6 +33,7 @@ init :: proc(renderer: ^Renderer) {
 	camera.init(&renderer.camera)
 	static_level.init(&renderer.static_level)
 	fixture.init(&renderer.fixtures)
+	explosion.init(&renderer.explosions)
 	player.init(&renderer.player)
 	object.init(&renderer.objects)
 	if renderer.lighting.ready {
@@ -41,6 +44,7 @@ init :: proc(renderer: ^Renderer) {
 
 unload :: proc(renderer: ^Renderer) {
 	delete(renderer.entity_poses)
+	explosion.unload(&renderer.explosions)
 	object.unload(&renderer.objects)
 	player.unload(&renderer.player)
 	fixture.unload(&renderer.fixtures)
@@ -49,6 +53,7 @@ unload :: proc(renderer: ^Renderer) {
 }
 
 load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
+	explosion.reset(&renderer.explosions)
 	if current, ok := model.snapshot(state); ok {
 		renderer.transform.coordinates = current.level.coordinates
 		static_level.load_level(&renderer.static_level, &current.level)
@@ -115,6 +120,7 @@ draw :: proc(
 	if current_tick != nil {
 		state_after = &current_tick.state_after
 	}
+	explosion.sync(&renderer.explosions, current_tick, &renderer.transform)
 
 	frame := render.Frame {
 		level        = &snapshot.level,
@@ -163,6 +169,9 @@ draw_scene :: proc(
 	}
 	object.draw(&renderer.objects, rules.entities_view(resolved), frame)
 	fixture.draw(&renderer.fixtures, frame, shadow_pass)
+	if !shadow_pass {
+		explosion.draw(&renderer.explosions, frame.progress, frame.transform.tile_size)
+	}
 }
 
 update_player_target :: proc(renderer: ^Renderer, state: ^model.World_State) {
