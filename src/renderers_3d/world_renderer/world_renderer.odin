@@ -51,6 +51,7 @@ unload :: proc(renderer: ^Renderer) {
 load_level :: proc(renderer: ^Renderer, state: ^model.World_State) {
 	if current, ok := model.snapshot(state); ok {
 		renderer.transform.coordinates = current.level.coordinates
+		static_level.load_level(&renderer.static_level, &current.level)
 	}
 	player.face(&renderer.player, player.DEFAULT_DIRECTION)
 	update_player_target(renderer, state)

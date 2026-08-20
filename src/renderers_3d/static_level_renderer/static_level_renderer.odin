@@ -7,16 +7,6 @@ import helpers "../helpers"
 import rl "vendor:raylib"
 import rlgl "vendor:raylib/rlgl"
 
-Renderer :: struct {}
-
-init :: proc(renderer: ^Renderer) {
-	// TODO: Load shared level models, materials, or shaders here.
-}
-
-unload :: proc(renderer: ^Renderer) {
-	// TODO: Unload resources owned by the static level renderer here.
-}
-
 world_bounds :: proc(
 	renderer: ^Renderer,
 	state: ^model.World_State,
@@ -76,6 +66,24 @@ draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame) {
 	}
 }
 
+draw_floor_quad :: proc(
+	renderer: ^Renderer,
+	level: ^rules.Level,
+	coordinate: rules.Coordinate,
+	a, b, c, d: rl.Vector3,
+	color: rl.Color,
+) {
+	texture := floor_texture(renderer, level, coordinate)
+
+	if texture.id != 0 {
+		rlgl.SetTexture(texture.id)
+	}
+	draw_quad(a, b, c, d, color)
+	if texture.id != 0 {
+		rlgl.SetTexture(0)
+	}
+}
+
 draw_quad :: proc(a, b, c, d: rl.Vector3, color: rl.Color) {
 	// Counter-clockwise when viewed from outside the solid.
 	edge_ab := b - a
@@ -98,6 +106,31 @@ draw_quad :: proc(a, b, c, d: rl.Vector3, color: rl.Color) {
 	rlgl.End()
 }
 
+draw_gradient_quad :: proc(a, b, c, d: rl.Vector3, color_a, color_b, color_c, color_d: rl.Color) {
+	edge_ab := b - a
+	edge_ac := c - a
+	normal := rl.Vector3Normalize(rl.Vector3CrossProduct(edge_ab, edge_ac))
+
+	rlgl.Begin(rlgl.TRIANGLES)
+	rlgl.Normal3f(normal.x, normal.y, normal.z)
+
+	draw_colored_vertex(a, {0, 0}, color_a)
+	draw_colored_vertex(b, {0, 1}, color_b)
+	draw_colored_vertex(c, {1, 1}, color_c)
+
+	draw_colored_vertex(a, {0, 0}, color_a)
+	draw_colored_vertex(c, {1, 1}, color_c)
+	draw_colored_vertex(d, {1, 0}, color_d)
+
+	rlgl.End()
+}
+
+draw_colored_vertex :: proc(position: rl.Vector3, texcoord: rl.Vector2, color: rl.Color) {
+	rlgl.Color4ub(color.r, color.g, color.b, color.a)
+	rlgl.TexCoord2f(texcoord.x, texcoord.y)
+	rlgl.Vertex3f(position.x, position.y, position.z)
+}
+
 draw_vertex :: proc(position: rl.Vector3, texcoord: rl.Vector2) {
 	rlgl.TexCoord2f(texcoord.x, texcoord.y)
 	rlgl.Vertex3f(position.x, position.y, position.z)
@@ -114,11 +147,30 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 
 	low_y := surface_height(frame.transform, cell.elevation)
 	high_y := low_y + frame.transform.height_unit
-	top_color := rl.Color {
-		u8(200 - 10 * cell.elevation),
-		u8(200 - 10 * cell.elevation),
-		u8(200 - 10 * cell.elevation),
-		255,
+	low_value := u8(200 - 10 * cell.elevation)
+	high_value := u8(200 - 10 * (cell.elevation + 1))
+
+	low_color := rl.Color{low_value, low_value, low_value, 255}
+	high_color := rl.Color{high_value, high_value, high_value, 255}
+
+	color_nw := high_color
+	color_ne := high_color
+	color_se := high_color
+	color_sw := high_color
+
+	switch cell.low_direction {
+	case .North:
+		color_nw = low_color
+		color_ne = low_color
+	case .East:
+		color_ne = low_color
+		color_se = low_color
+	case .South:
+		color_se = low_color
+		color_sw = low_color
+	case .West:
+		color_sw = low_color
+		color_nw = low_color
 	}
 
 	// All ramp solids begin at the same y=0 plane as flat cubes.
@@ -156,7 +208,7 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
 
 	// Top
-	draw_quad(t_nw, t_sw, t_se, t_ne, top_color)
+	draw_gradient_quad(t_nw, t_sw, t_se, t_ne, color_nw, color_sw, color_se, color_ne)
 }
 
 draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {
@@ -192,7 +244,7 @@ draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 	draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
 	draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
 	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
-	draw_quad(t_nw, t_sw, t_se, t_ne, top_color)
+	draw_floor_quad(renderer, frame.level, cell.coordinate, t_nw, t_sw, t_se, t_ne, top_color)
 }
 
 surface_height :: proc(transform: ^helpers.Grid_Transform, elevation: i32) -> f32 {
