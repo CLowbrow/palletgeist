@@ -179,8 +179,9 @@ cells_connect :: proc(source, destination: rules.Cell, direction: rules.Directio
 	}
 
 	if source.kind == .Ramp {
-		height, _, found := rules.ramp_endpoint(source, direction)
-		return found && height == destination.elevation
+		if direction == source.low_direction || direction == rules.opposite(source.low_direction) {
+			return true
+		}
 	}
 
 	height, _, found := rules.ramp_endpoint(destination, rules.opposite(direction))
