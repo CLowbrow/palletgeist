@@ -80,12 +80,12 @@ animated_retraction_height :: proc(
 	retracted_after: bool,
 	progress: f32,
 ) -> f32 {
-	height_before: f32 = 1
+	height_before: f32 = 3
 	if retracted_before {
 		height_before = 0
 	}
 
-	height_after: f32 = 1
+	height_after: f32 = 3
 	if retracted_after {
 		height_after = 0
 	}
