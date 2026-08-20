@@ -2,16 +2,32 @@ package fixture_renderer
 
 import rules "../../game_rules"
 import helpers "../helpers"
+import "core:c"
+import "core:log"
 import rl "vendor:raylib"
 
-Renderer :: struct {}
+Renderer :: struct {
+	door_panels:        [dynamic]Door_Panel,
+	door_shader:        rl.Shader,
+	door_time_location: c.int,
+}
 
 init :: proc(renderer: ^Renderer) {
-	// TODO: Load shared fixture models, materials, or shaders here.
+	renderer.door_panels = make([dynamic]Door_Panel, 0, 16)
+	renderer.door_shader = rl.LoadShader(DOOR_VERTEX_SHADER_PATH, DOOR_FRAGMENT_SHADER_PATH)
+	if rl.IsShaderValid(renderer.door_shader) {
+		renderer.door_time_location = rl.GetShaderLocation(renderer.door_shader, "time")
+	} else {
+		log.error("Could not load the animated door shader; using normal rendering")
+	}
 }
 
 unload :: proc(renderer: ^Renderer) {
-	// TODO: Unload resources owned by the fixture renderer here.
+	delete(renderer.door_panels)
+	if rl.IsShaderValid(renderer.door_shader) {
+		rl.UnloadShader(renderer.door_shader)
+	}
+	renderer^ = {}
 }
 
 draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame, shadow_pass: bool) {
@@ -23,6 +39,8 @@ draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame, shadow_pass: bool) {
 	   frame.transform == nil {
 		return
 	}
+
+	clear(&renderer.door_panels)
 
 	for fixture in rules.fixtures_view(frame.level) {
 		floor_y, found := fixture_floor_y(frame.level, fixture.coordinate, frame.transform)
@@ -49,11 +67,22 @@ draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame, shadow_pass: bool) {
 			}
 			open_before := rules.door_is_open(frame.state_before, fixture.coordinate)
 			open_after := rules.door_is_open(frame.state_after, fixture.coordinate)
-			draw_door(renderer, fixture, frame, floor_y, open_before, open_after)
+			collect_door_panels(
+				&renderer.door_panels,
+				fixture,
+				frame,
+				floor_y,
+				open_before,
+				open_after,
+			)
 		case .Exit:
 			draw_exit(renderer, fixture, frame, floor_y)
 		}
 	}
+
+	// Doors are translucent, so render all of their panels together after the
+	// opaque fixtures and in back-to-front camera order.
+	draw_door_panels(renderer, renderer.door_panels[:])
 }
 
 fixture_floor_y :: proc(
@@ -80,12 +109,12 @@ animated_retraction_height :: proc(
 	retracted_after: bool,
 	progress: f32,
 ) -> f32 {
-	height_before: f32 = 1
+	height_before: f32 = 3
 	if retracted_before {
 		height_before = 0
 	}
 
-	height_after: f32 = 1
+	height_after: f32 = 3
 	if retracted_after {
 		height_after = 0
 	}
