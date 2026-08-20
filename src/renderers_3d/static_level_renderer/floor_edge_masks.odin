@@ -69,7 +69,7 @@ load_level :: proc(renderer: ^Renderer, level: ^rules.Level) {
 	cell_count := int(level.width) * int(level.height)
 	renderer.cell_edge_masks = make([]u8, cell_count)
 	for cell in rules.cells_view(level) {
-		index, found := cell_index(level, cell.coordinate)
+		index, found := rules.cell_index(level, cell.coordinate)
 		if !found {
 			continue
 		}
@@ -88,7 +88,7 @@ floor_texture :: proc(
 	if renderer == nil {
 		return {}
 	}
-	if index, found := cell_index(level, coordinate);
+	if index, found := rules.cell_index(level, coordinate);
 	   found && index < len(renderer.cell_edge_masks) {
 		mask := renderer.cell_edge_masks[index]
 		return renderer.floor_textures[int(mask)]
@@ -142,8 +142,8 @@ closed_edge_mask :: proc(level: ^rules.Level, cell: rules.Cell) -> u8 {
 	directions := [4]rules.Direction{.North, .East, .South, .West}
 
 	for direction in directions {
-		coordinate, stepped := step_coordinate(level, cell.coordinate, direction)
-		neighbor, found := find_cell(level, coordinate)
+		coordinate, stepped := rules.step_coordinate(level, cell.coordinate, direction)
+		neighbor, found := rules.find_cell(level, coordinate)
 		if !stepped || !found || !cells_connect(cell, neighbor^, direction) {
 			mask |= texture_edge(level, direction)
 		}
@@ -171,152 +171,18 @@ cells_connect :: proc(source, destination: rules.Cell, direction: rules.Directio
 	}
 
 	if source.kind == .Ramp && destination.kind == .Ramp {
-		if source.low_direction == destination.low_direction &&
-		   source.elevation == destination.elevation {
-			return true
+		// Based on how the level rules work, this is the only case where you couldn't move from one ramp to the other
+		if (source.low_direction == rules.opposite(destination.low_direction)) {
+			return false
 		}
-
-		source_height, source_high, source_ok := ramp_endpoint(source, direction)
-		destination_height, destination_high, destination_ok := ramp_endpoint(
-			destination,
-			opposite(direction),
-		)
-		return(
-			source_ok &&
-			destination_ok &&
-			source_high != destination_high &&
-			source_height == destination_height \
-		)
+		return true
 	}
 
 	if source.kind == .Ramp {
-		height, _, found := ramp_endpoint(source, direction)
+		height, _, found := rules.ramp_endpoint(source, direction)
 		return found && height == destination.elevation
 	}
 
-	height, _, found := ramp_endpoint(destination, opposite(direction))
+	height, _, found := rules.ramp_endpoint(destination, rules.opposite(direction))
 	return found && source.elevation == height
-}
-
-ramp_endpoint :: proc(
-	ramp: rules.Cell,
-	direction: rules.Direction,
-) -> (
-	height: i32,
-	high, found: bool,
-) {
-	if ramp.kind != .Ramp {
-		return
-	}
-	if direction == ramp.low_direction {
-		return ramp.elevation, false, true
-	}
-	if direction == opposite(ramp.low_direction) {
-		return ramp.elevation + 1, true, true
-	}
-	return
-}
-
-is_ramp_endpoint :: proc(ramp: rules.Cell, direction: rules.Direction) -> bool {
-	_, _, found := ramp_endpoint(ramp, direction)
-	return found
-}
-
-opposite :: proc(direction: rules.Direction) -> rules.Direction {
-	return rules.Direction((u32(direction) + 2) % 4)
-}
-
-step_coordinate :: proc(
-	level: ^rules.Level,
-	coordinate: rules.Coordinate,
-	direction: rules.Direction,
-) -> (
-	result: rules.Coordinate,
-	ok: bool,
-) {
-	if level == nil {
-		return
-	}
-
-	x := i64(coordinate.x)
-	y := i64(coordinate.y)
-	switch direction {
-	case .North:
-		if level.coordinates.positive_y == .North {
-			y += 1
-		} else {
-			y -= 1
-		}
-	case .East:
-		if level.coordinates.positive_x == .East {
-			x += 1
-		} else {
-			x -= 1
-		}
-	case .South:
-		if level.coordinates.positive_y == .South {
-			y += 1
-		} else {
-			y -= 1
-		}
-	case .West:
-		if level.coordinates.positive_x == .West {
-			x += 1
-		} else {
-			x -= 1
-		}
-	}
-
-	if x < i64(min(i32)) || x > i64(max(i32)) || y < i64(min(i32)) || y > i64(max(i32)) {
-		return
-	}
-	result = {i32(x), i32(y)}
-	ok = true
-	return
-}
-
-cell_index :: proc(
-	level: ^rules.Level,
-	coordinate: rules.Coordinate,
-) -> (
-	index: int,
-	found: bool,
-) {
-	if level == nil {
-		return
-	}
-
-	dx := i64(coordinate.x) - i64(level.coordinates.origin.x)
-	dy := i64(coordinate.y) - i64(level.coordinates.origin.y)
-	if dx < 0 || dy < 0 || dx >= i64(level.width) || dy >= i64(level.height) {
-		return
-	}
-	return int(dy * i64(level.width) + dx), true
-}
-
-find_cell :: proc(
-	level: ^rules.Level,
-	coordinate: rules.Coordinate,
-) -> (
-	cell: ^rules.Cell,
-	found: bool,
-) {
-	index, in_bounds := cell_index(level, coordinate)
-	if !in_bounds {
-		return
-	}
-
-	cells := rules.cells_view(level)
-	if index < len(cells) && cells[index].coordinate == coordinate {
-		return &cells[index], true
-	}
-
-	// Valid rules snapshots are row-major, but retaining this fallback keeps the
-	// helper useful with hand-built levels in tests and tools.
-	for &candidate in cells {
-		if candidate.coordinate == coordinate {
-			return &candidate, true
-		}
-	}
-	return
 }

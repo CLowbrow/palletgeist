@@ -161,3 +161,108 @@ data_api_version :: proc() -> u32 {
 status :: proc() -> cstring {
 	return game_rules_engine_status()
 }
+
+ramp_endpoint :: proc(ramp: Cell, direction: Direction) -> (height: i32, high, found: bool) {
+	if ramp.kind != .Ramp {
+		return
+	}
+	if direction == ramp.low_direction {
+		return ramp.elevation, false, true
+	}
+	if direction == opposite(ramp.low_direction) {
+		return ramp.elevation + 1, true, true
+	}
+	return
+}
+
+is_ramp_endpoint :: proc(ramp: Cell, direction: Direction) -> bool {
+	_, _, found := ramp_endpoint(ramp, direction)
+	return found
+}
+
+opposite :: proc(direction: Direction) -> Direction {
+	return Direction((u32(direction) + 2) % 4)
+}
+
+step_coordinate :: proc(
+	level: ^Level,
+	coordinate: Coordinate,
+	direction: Direction,
+) -> (
+	result: Coordinate,
+	ok: bool,
+) {
+	if level == nil {
+		return
+	}
+
+	x := i64(coordinate.x)
+	y := i64(coordinate.y)
+	switch direction {
+	case .North:
+		if level.coordinates.positive_y == .North {
+			y += 1
+		} else {
+			y -= 1
+		}
+	case .East:
+		if level.coordinates.positive_x == .East {
+			x += 1
+		} else {
+			x -= 1
+		}
+	case .South:
+		if level.coordinates.positive_y == .South {
+			y += 1
+		} else {
+			y -= 1
+		}
+	case .West:
+		if level.coordinates.positive_x == .West {
+			x += 1
+		} else {
+			x -= 1
+		}
+	}
+
+	if x < i64(min(i32)) || x > i64(max(i32)) || y < i64(min(i32)) || y > i64(max(i32)) {
+		return
+	}
+	result = {i32(x), i32(y)}
+	ok = true
+	return
+}
+
+cell_index :: proc(level: ^Level, coordinate: Coordinate) -> (index: int, found: bool) {
+	if level == nil {
+		return
+	}
+
+	dx := i64(coordinate.x) - i64(level.coordinates.origin.x)
+	dy := i64(coordinate.y) - i64(level.coordinates.origin.y)
+	if dx < 0 || dy < 0 || dx >= i64(level.width) || dy >= i64(level.height) {
+		return
+	}
+	return int(dy * i64(level.width) + dx), true
+}
+
+find_cell :: proc(level: ^Level, coordinate: Coordinate) -> (cell: ^Cell, found: bool) {
+	index, in_bounds := cell_index(level, coordinate)
+	if !in_bounds {
+		return
+	}
+
+	cells := cells_view(level)
+	if index < len(cells) && cells[index].coordinate == coordinate {
+		return &cells[index], true
+	}
+
+	// Valid rules snapshots are row-major, but retaining this fallback keeps the
+	// helper useful with hand-built levels in tests and tools.
+	for &candidate in cells {
+		if candidate.coordinate == coordinate {
+			return &candidate, true
+		}
+	}
+	return
+}

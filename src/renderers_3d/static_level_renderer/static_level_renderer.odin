@@ -80,8 +80,14 @@ draw_floor_quad :: proc(
 	}
 	draw_quad(a, b, c, d, color)
 	if texture.id != 0 {
-		rlgl.SetTexture(0)
+		// rlSetTexture(0) does not split an active TRIANGLES batch in raylib 6,
+		// so following ramp geometry would inherit this floor's edge mask.
+		rlgl.SetTexture(floor_texture_reset_id(texture.id, rlgl.GetTextureIdDefault()))
 	}
+}
+
+floor_texture_reset_id :: proc(mask_texture_id, default_texture_id: u32) -> u32 {
+	return mask_texture_id != 0 ? default_texture_id : 0
 }
 
 draw_quad :: proc(a, b, c, d: rl.Vector3, color: rl.Color) {
