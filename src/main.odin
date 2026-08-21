@@ -138,7 +138,7 @@ when ODIN_OS != .JS {
 update :: proc(game: ^Game_State) {
 	update_move_animation(game, rl.GetFrameTime())
 
-	if game.won_time != 0 && rl.GetTime() - game.won_time > 3 {
+	if game.won_time != 0 && rl.GetTime() - game.won_time > 3 && game.mode == .LevelWon {
 		log.debug("Won game")
 		game.won_time = 0
 
