@@ -61,6 +61,17 @@
     let gameExports = null;
     let gameEnded = false;
 
+    const arrowKeys = new Set([
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+    ]);
+
+    window.addEventListener("keydown", (event) => {
+      if (arrowKeys.has(event.key)) event.preventDefault();
+    });
+
     function endGame() {
       if (gameEnded || !gameExports) return;
       gameEnded = true;
