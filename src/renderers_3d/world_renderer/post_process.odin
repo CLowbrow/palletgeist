@@ -8,17 +8,17 @@ PALETTE_FRAGMENT_SHADER_PATH :: "assets/shaders/resurrect_64.fs"
 SOFT_UPSCALE_FRAGMENT_SHADER_PATH :: "assets/shaders/soft_pixel_upscale.fs"
 WEB_PALETTE_FRAGMENT_SHADER_PATH :: "assets/shaders/web/resurrect_64.fs"
 WEB_SOFT_UPSCALE_FRAGMENT_SHADER_PATH :: "assets/shaders/web/soft_pixel_upscale.fs"
-MAX_SCENE_DIMENSION :: c.int(720)
+MAX_SCENE_DIMENSION :: c.int(640)
 
 Post_Process :: struct {
-	scene_target:        rl.RenderTexture2D,
-	palette_target:      rl.RenderTexture2D,
-	palette_shader:      rl.Shader,
-	soft_upscale_shader: rl.Shader,
+	scene_target:                 rl.RenderTexture2D,
+	palette_target:               rl.RenderTexture2D,
+	palette_shader:               rl.Shader,
+	soft_upscale_shader:          rl.Shader,
 	upscale_source_size_location: c.int,
 	upscale_output_size_location: c.int,
-	width:               c.int,
-	height:              c.int,
+	width:                        c.int,
+	height:                       c.int,
 }
 
 init_post_process :: proc(post: ^Post_Process) {
@@ -41,10 +41,14 @@ init_post_process :: proc(post: ^Post_Process) {
 		)
 	} else {
 		when ODIN_OS == .JS {
-			post.upscale_source_size_location =
-				rl.GetShaderLocation(post.soft_upscale_shader, "sourceSize")
-			post.upscale_output_size_location =
-				rl.GetShaderLocation(post.soft_upscale_shader, "outputSize")
+			post.upscale_source_size_location = rl.GetShaderLocation(
+				post.soft_upscale_shader,
+				"sourceSize",
+			)
+			post.upscale_output_size_location = rl.GetShaderLocation(
+				post.soft_upscale_shader,
+				"outputSize",
+			)
 		}
 	}
 }
