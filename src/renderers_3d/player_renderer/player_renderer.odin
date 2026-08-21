@@ -94,7 +94,7 @@ camera_target :: proc(
 	return
 }
 
-draw :: proc(renderer: ^Renderer, player: ^rules.Entity, frame: ^helpers.Frame) {
+draw :: proc(renderer: ^Renderer, player: ^rules.Entity, frame: ^helpers.Frame, win_state: bool) {
 	bounds := renderer.model_bounds
 	model_width := bounds.max.x - bounds.min.x
 	model_depth := bounds.max.z - bounds.min.z
@@ -104,7 +104,7 @@ draw :: proc(renderer: ^Renderer, player: ^rules.Entity, frame: ^helpers.Frame) 
 	}
 
 	scale := frame.transform.tile_size * MODEL_FOOTPRINT_RATIO / model_footprint
-	rotation := direction_rotation(renderer.direction)
+	rotation := win_state ? 180 : direction_rotation(renderer.direction)
 
 	position := helpers.entity_bottom_to_world(
 		frame.transform,

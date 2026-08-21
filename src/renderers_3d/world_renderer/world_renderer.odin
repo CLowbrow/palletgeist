@@ -145,7 +145,7 @@ draw :: proc(
 		player.restore_model_shaders(&renderer.player)
 		object.restore_model_shaders(&renderer.objects)
 		begin_shadow_pass(&renderer.lighting)
-		draw_scene(renderer, &frame, render_resolved, true)
+		draw_scene(renderer, &frame, render_resolved, true, mode)
 		end_shadow_pass(&renderer.lighting)
 
 		if render_to_texture {
@@ -156,7 +156,7 @@ draw :: proc(
 		object.set_shader(&renderer.objects, renderer.lighting.shader)
 		begin_lit_pass(&renderer.lighting)
 		camera.begin(&renderer.camera)
-		draw_scene(renderer, &frame, render_resolved, false)
+		draw_scene(renderer, &frame, render_resolved, false, mode)
 		camera.end()
 		end_lit_pass(&renderer.lighting)
 	} else {
@@ -165,7 +165,7 @@ draw :: proc(
 		}
 		rl.ClearBackground(rl.Color{20, 22, 28, 255})
 		camera.begin(&renderer.camera)
-		draw_scene(renderer, &frame, render_resolved, false)
+		draw_scene(renderer, &frame, render_resolved, false, mode)
 		camera.end()
 	}
 
@@ -179,10 +179,11 @@ draw_scene :: proc(
 	frame: ^render.Frame,
 	resolved: ^rules.Resolved_State,
 	shadow_pass: bool,
+	mode: app.UI_Mode,
 ) {
 	static_level.draw(&renderer.static_level, frame)
 	if player_entity, ok := model.player_from_resolved(resolved); ok {
-		player.draw(&renderer.player, &player_entity, frame)
+		player.draw(&renderer.player, &player_entity, frame, mode == .LevelWon)
 	}
 	object.draw(&renderer.objects, rules.entities_view(resolved), frame)
 	fixture.draw(&renderer.fixtures, frame, shadow_pass)

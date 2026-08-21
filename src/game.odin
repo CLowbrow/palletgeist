@@ -5,6 +5,7 @@ import rules "game_rules"
 import model "game_state"
 import helpers "helpers"
 import world "renderers_3d/world_renderer"
+import rl "vendor:raylib"
 
 clear_move_animation :: proc(game: ^Game_State) {
 	game.animation_queue = {}
@@ -70,6 +71,15 @@ apply_move :: proc(game: ^Game_State, direction: rules.Direction) {
 	}
 
 	clear_move_animation(game)
+
+	if result.has_outcome != 0 {
+		if result.outcome == .Won {
+			game.mode = .LevelWon
+			game.won_time = rl.GetTime()
+		} else if result.outcome == .Lost {
+			game.mode = .LevelLost
+		}
+	}
 
 	game.retained_result = result
 	result = {}
