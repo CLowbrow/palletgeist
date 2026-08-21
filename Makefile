@@ -5,6 +5,12 @@ RULES_SOURCE_DIR := bomb-box-rules-c
 RULES_BUILD_DIR := $(BUILD_DIR)/game-rules
 RULES_LIBRARY := $(RULES_BUILD_DIR)/libgame_rules_state_c.a
 
+ifeq ($(OS),Windows_NT)
+PROJECT_BINARY := $(BUILD_DIR)/$(PROJECT).exe
+else
+PROJECT_BINARY := $(BUILD_DIR)/$(PROJECT)
+endif
+
 ODIN ?= odin
 CMAKE ?= cmake
 ODIN_FLAGS ?=
@@ -15,10 +21,10 @@ all: build
 
 build: rules
 	@mkdir -p $(BUILD_DIR)
-	$(ODIN) build $(SOURCE_DIR) -out:$(BUILD_DIR)/$(PROJECT) -debug $(ODIN_FLAGS)
+	$(ODIN) build $(SOURCE_DIR) -out:$(PROJECT_BINARY) -debug $(ODIN_FLAGS)
 
 run: build
-	./$(BUILD_DIR)/$(PROJECT)
+	./$(PROJECT_BINARY)
 
 check: rules
 	$(ODIN) check $(SOURCE_DIR) $(ODIN_FLAGS)

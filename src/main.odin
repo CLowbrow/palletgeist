@@ -57,7 +57,7 @@ main :: proc() {
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 	rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
 	defer rl.CloseWindow()
-
+	
 	world.init(&game.world_renderer)
 	defer world.unload(&game.world_renderer)
 	defer model.unload(&game.world_state)
