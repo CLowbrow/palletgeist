@@ -3,15 +3,10 @@ package game_rules
 // Static library paths are resolved relative to this source file.
 when ODIN_OS == .Windows {
 	foreign import rules_lib "../../build/game-rules/Debug/game_rules_state_c.lib"
-} else when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
-	// The final Emscripten link receives the real rules archive. Odin only
-	// needs a placeholder import while producing its intermediate object.
-	foreign import rules_lib "env.o"
 } else {
 	foreign import rules_lib "../../build/game-rules/libgame_rules_state_c.a"
 }
 
-@(default_calling_convention="c")
 foreign rules_lib {
 	game_rules_api_version      :: proc() -> u32 ---
 	game_rules_data_api_version :: proc() -> u32 ---

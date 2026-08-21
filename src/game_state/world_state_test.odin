@@ -1,5 +1,3 @@
-#+build !js
-
 package game_state
 
 import rules "../game_rules"

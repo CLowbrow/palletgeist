@@ -9,8 +9,6 @@ import rlgl "vendor:raylib/rlgl"
 DOOR_FOOTPRINT_RATIO :: f32(0.82)
 DOOR_VERTEX_SHADER_PATH :: "assets/shaders/door_wave.vs"
 DOOR_FRAGMENT_SHADER_PATH :: "assets/shaders/door_wave.fs"
-WEB_DOOR_VERTEX_SHADER_PATH :: "assets/shaders/web/door_wave.vs"
-WEB_DOOR_FRAGMENT_SHADER_PATH :: "assets/shaders/web/door_wave.fs"
 
 Door_Panel :: struct {
 	bottom_left:  rl.Vector3,
