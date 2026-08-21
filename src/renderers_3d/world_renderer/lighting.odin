@@ -11,7 +11,7 @@ WEB_SHADOW_VERTEX_SHADER_PATH :: "assets/shaders/web/shadowmap.vs"
 WEB_SHADOW_FRAGMENT_SHADER_PATH :: "assets/shaders/web/shadowmap.fs"
 SHADOW_MAP_RESOLUTION :: 1080
 SHADOW_TEXTURE_SLOT :: 10
-WEB_SHADOW_TEXTURE_SLOT :: 1
+WEB_SHADOW_TEXTURE_SLOT :: 7
 MIN_LIGHT_VIEW_SPAN :: f32(6)
 LIGHT_VIEW_PADDING :: f32(3)
 
@@ -119,8 +119,9 @@ begin_lit_pass :: proc(lighting: ^Lighting) {
 	rlgl.EnableShader(lighting.shader.id)
 	texture_slot: c.int
 	when ODIN_OS == .JS {
-		// WebGL 1 only guarantees eight fragment texture units. Unit one is free
-		// alongside the model's texture0 and works on every conforming browser.
+		// WebGL 1 guarantees units 0 through 7. Raylib's render batch uses the
+		// lower units for material and floor-mask textures, so keep the shadow map
+		// on the highest guaranteed unit to prevent those batches replacing it.
 		texture_slot = WEB_SHADOW_TEXTURE_SLOT
 	} else {
 		texture_slot = SHADOW_TEXTURE_SLOT

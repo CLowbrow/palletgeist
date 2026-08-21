@@ -56,12 +56,25 @@ world_bounds :: proc(
 }
 
 draw :: proc(renderer: ^Renderer, frame: ^helpers.Frame) {
+	// Draw every solid's side faces before any top surfaces. Adjacent cells share
+	// exact boundary coordinates; interleaving sides and tops lets a later dark
+	// side win the equal-depth edge on WebGL and creates visible seams or dashes.
+	// The top pass consistently covers those shared edges while exposed sides
+	// remain visible around the level perimeter and elevation changes.
 	for cell in rules.cells_view(frame.level) {
 		switch cell.kind {
 		case .Flat:
-			draw_flat(renderer, cell, frame)
+			draw_flat(renderer, cell, frame, false)
 		case .Ramp:
-			draw_ramp(renderer, cell, frame)
+			draw_ramp(renderer, cell, frame, false)
+		}
+	}
+	for cell in rules.cells_view(frame.level) {
+		switch cell.kind {
+		case .Flat:
+			draw_flat(renderer, cell, frame, true)
+		case .Ramp:
+			draw_ramp(renderer, cell, frame, true)
 		}
 	}
 }
@@ -142,7 +155,12 @@ draw_vertex :: proc(position: rl.Vector3, texcoord: rl.Vector2) {
 	rlgl.Vertex3f(position.x, position.y, position.z)
 }
 
-draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {
+draw_ramp :: proc(
+	renderer: ^Renderer,
+	cell: rules.Cell,
+	frame: ^helpers.Frame,
+	top_pass: bool,
+) {
 	center := helpers.coordinate_to_world(frame.transform, cell.coordinate)
 	half := frame.transform.tile_size * 0.5
 
@@ -205,19 +223,25 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 		t_nw.y = low_y
 	}
 
-	// Bottom and four vertical sides.
-	draw_quad(b_nw, b_ne, b_se, b_sw, rl.DARKGRAY)
-	// TODO: Can't see this one but put it back if we ever rotate
-	// draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
-	draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
-	draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
-	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
-
-	// Top
-	draw_gradient_quad(t_nw, t_sw, t_se, t_ne, color_nw, color_sw, color_se, color_ne)
+	if top_pass {
+		draw_gradient_quad(t_nw, t_sw, t_se, t_ne, color_nw, color_sw, color_se, color_ne)
+	} else {
+		// Bottom and four vertical sides.
+		draw_quad(b_nw, b_ne, b_se, b_sw, rl.DARKGRAY)
+		// TODO: Can't see this one but put it back if we ever rotate
+		// draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
+		draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
+		draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
+		draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
+	}
 }
 
-draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {
+draw_flat :: proc(
+	renderer: ^Renderer,
+	cell: rules.Cell,
+	frame: ^helpers.Frame,
+	top_pass: bool,
+) {
 	center := helpers.coordinate_to_world(frame.transform, cell.coordinate)
 	half := frame.transform.tile_size * 0.5
 	top_y := surface_height(frame.transform, cell.elevation)
@@ -244,13 +268,25 @@ draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 	t_se := rl.Vector3{x_max, top_y, z_max}
 	t_sw := rl.Vector3{x_min, top_y, z_max}
 
-	draw_quad(b_nw, b_ne, b_se, b_sw, rl.DARKGRAY)
-	// TODO: Can't see this one but put it back if we ever rotate
-	// draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
-	draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
-	draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
-	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
-	draw_floor_quad(renderer, frame.level, cell.coordinate, t_nw, t_sw, t_se, t_ne, top_color)
+	if top_pass {
+		draw_floor_quad(
+			renderer,
+			frame.level,
+			cell.coordinate,
+			t_nw,
+			t_sw,
+			t_se,
+			t_ne,
+			top_color,
+		)
+	} else {
+		draw_quad(b_nw, b_ne, b_se, b_sw, rl.DARKGRAY)
+		// TODO: Can't see this one but put it back if we ever rotate
+		// draw_quad(b_nw, t_nw, t_ne, b_ne, rl.DARKGRAY) // North
+		draw_quad(b_ne, t_ne, t_se, b_se, rl.DARKGRAY) // East
+		draw_quad(b_se, t_se, t_sw, b_sw, rl.DARKGRAY) // South
+		draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
+	}
 }
 
 surface_height :: proc(transform: ^helpers.Grid_Transform, elevation: i32) -> f32 {
