@@ -105,15 +105,17 @@ sync :: proc(
 		return
 	}
 
-	renderer.shader = rl.LoadShader(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH)
-	if !rl.IsShaderValid(renderer.shader) {
-		log.error("Could not load the explosion shader; using normal rendering")
-		return
-	}
+	when ODIN_OS != .JS {
+		renderer.shader = rl.LoadShader(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH)
+		if !rl.IsShaderValid(renderer.shader) {
+			log.error("Could not load the explosion shader; using normal rendering")
+			return
+		}
 
-	renderer.progress_location = rl.GetShaderLocation(renderer.shader, "progress")
-	renderer.opacity_location = rl.GetShaderLocation(renderer.shader, "opacity")
-	renderer.model.materials[0].shader = renderer.shader
+		renderer.progress_location = rl.GetShaderLocation(renderer.shader, "progress")
+		renderer.opacity_location = rl.GetShaderLocation(renderer.shader, "opacity")
+		renderer.model.materials[0].shader = renderer.shader
+	}
 }
 
 draw :: proc(renderer: ^Renderer, progress: f32, tile_size: f32) {

@@ -18,6 +18,12 @@ Post_Process :: struct {
 }
 
 init_post_process :: proc(post: ^Post_Process) {
+	// These effects use GLSL 330 features that are not available in raylib's
+	// WebGL 1 build. Direct presentation keeps the browser renderer reliable.
+	when ODIN_OS == .JS {
+		return
+	}
+
 	post.palette_shader = rl.LoadShader(nil, PALETTE_FRAGMENT_SHADER_PATH)
 	if !rl.IsShaderValid(post.palette_shader) {
 		log.error(

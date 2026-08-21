@@ -30,48 +30,108 @@ Game_State :: struct {
 	won_time:        f64,
 }
 
-main :: proc() {
-	context.logger = log.create_console_logger()
-	defer log.destroy_console_logger(context.logger)
+App :: struct {
+	game:              Game_State,
+	engine_created:    bool,
+	window_initialized: bool,
+	world_initialized: bool,
+	ready:              bool,
+}
 
-	// Bootstrap engine
+app_init :: proc(app: ^App) -> bool {
+	// Bootstrap the platform-neutral game state before creating GPU resources.
 	engine, engine_created := rules.create_engine()
-	defer rules.destroy_engine(&engine)
-	if !rules.api_is_compatible() {
-		fmt.eprintln("Unsupported game-rules C API version")
-		return
-	}
-	if !engine_created {
-		fmt.eprintln("Could not create the game-rules engine")
-		return
-	}
-
-	game := Game_State {
+	app.game = {
 		mode     = helpers.UI_Mode.MainMenu,
 		engine   = engine,
 		won_time = 1,
 	}
-	defer rules.dispose_move_result(&game.retained_result)
+	app.engine_created = engine_created
+
+	if !rules.api_is_compatible() {
+		fmt.eprintln("Unsupported game-rules C API version")
+		return false
+	}
+	if !engine_created {
+		fmt.eprintln("Could not create the game-rules engine")
+		return false
+	}
 
 	rl.SetConfigFlags({.WINDOW_RESIZABLE})
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
-	rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
-	defer rl.CloseWindow()
+	app.window_initialized = rl.IsWindowReady()
+	if !app.window_initialized {
+		fmt.eprintln("Could not initialize the game window")
+		return false
+	}
+	when ODIN_OS != .JS {
+		rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
+	}
 
-	world.init(&game.world_renderer)
-	defer world.unload(&game.world_renderer)
-	defer model.unload(&game.world_state)
+	world.init(&app.game.world_renderer)
+	app.world_initialized = true
 
-	if !start_level(&game, 0) {
+	if !start_level(&app.game, 0) {
 		fmt.eprintln("Could not load initial level")
+		return false
+	}
+
+	// Browser frames are driven by requestAnimationFrame. SetTargetFPS makes
+	// raylib call emscripten_sleep from EndDrawing, which requires Asyncify.
+	when ODIN_OS != .JS {
+		rl.SetTargetFPS(60)
+	}
+	app.ready = true
+	return true
+}
+
+app_frame :: proc(app: ^App) -> bool {
+	if !app.ready || !app.window_initialized {
+		return false
+	}
+	// raylib's web implementation of WindowShouldClose sleeps to emulate a
+	// synchronous loop. The browser entry point already owns the async loop.
+	when ODIN_OS != .JS {
+		if rl.WindowShouldClose() {
+			return false
+		}
+	}
+	update(&app.game)
+	draw(&app.game)
+	return true
+}
+
+app_shutdown :: proc(app: ^App) {
+	if app == nil {
 		return
 	}
 
-	rl.SetTargetFPS(60)
+	rules.dispose_move_result(&app.game.retained_result)
+	model.unload(&app.game.world_state)
+	if app.world_initialized {
+		world.unload(&app.game.world_renderer)
+	}
+	if app.window_initialized {
+		rl.CloseWindow()
+	}
+	if app.engine_created {
+		rules.destroy_engine(&app.game.engine)
+	}
+	app^ = {}
+}
 
-	for !rl.WindowShouldClose() {
-		update(&game)
-		draw(&game)
+when ODIN_OS != .JS {
+	main :: proc() {
+		context.logger = log.create_console_logger()
+		defer log.destroy_console_logger(context.logger)
+
+		app: App
+		defer app_shutdown(&app)
+		if !app_init(&app) {
+			return
+		}
+
+		for app_frame(&app) {}
 	}
 }
 

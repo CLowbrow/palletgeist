@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Palletgeist</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #14161c;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+    }
+
+    #canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      outline: none;
+    }
+
+    #status {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #f5f5f5;
+      font: 16px/1.4 system-ui, sans-serif;
+      pointer-events: none;
+    }
+
+    #status[hidden] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas
+    id="canvas"
+    tabindex="0"
+    oncontextmenu="event.preventDefault()"
+    onmousedown="event.currentTarget.focus()"
+  ></canvas>
+  <div id="status">Loading Palletgeist…</div>
+
+  <script src="odin.js"></script>
+  <script>
+    const statusElement = document.getElementById("status");
+    const canvas = document.getElementById("canvas");
+    const odinMemoryInterface = new odin.WasmMemoryInterface();
+    odinMemoryInterface.setIntSize(4);
+    const odinImports = odin.setupDefaultImports(odinMemoryInterface);
+
+    let gameExports = null;
+    let gameEnded = false;
+
+    function endGame() {
+      if (gameEnded || !gameExports) return;
+      gameEnded = true;
+      gameExports.main_end();
+      gameExports._end();
+    }
+
+    var Module = {
+      canvas,
+      instantiateWasm(imports, successCallback) {
+        return WebAssembly.instantiateStreaming(fetch("index.wasm"), {
+          ...odinImports,
+          ...imports,
+        }).then((output) => {
+          gameExports = output.instance.exports;
+          odinMemoryInterface.setExports(gameExports);
+          odinMemoryInterface.setMemory(gameExports.memory);
+          successCallback(output.instance);
+          return output.instance.exports;
+        });
+      },
+      onRuntimeInitialized() {
+        gameExports = wasmExports;
+        gameExports._start();
+        gameExports.main_start();
+        statusElement.hidden = true;
+        canvas.focus();
+
+        function frame() {
+          if (gameExports.main_update()) {
+            requestAnimationFrame(frame);
+          } else {
+            endGame();
+          }
+        }
+        requestAnimationFrame(frame);
+      },
+      print(text) {
+        console.log(text);
+      },
+      printErr(text) {
+        console.error(text);
+      },
+      onAbort() {
+        statusElement.hidden = false;
+        statusElement.textContent = "Palletgeist could not start. Check the browser console.";
+      },
+      setStatus(text) {
+        if (text) statusElement.textContent = text;
+      },
+    };
+
+    window.addEventListener("pagehide", endGame, {once: true});
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>

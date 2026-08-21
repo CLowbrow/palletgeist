@@ -26,6 +26,13 @@ Lighting :: struct {
 }
 
 init_lighting :: proc(lighting: ^Lighting) {
+	// Odin's bundled raylib web archive targets WebGL 1 / GLSL ES 100. The
+	// desktop shadow shader is GLSL 330, so web deliberately uses the normal
+	// model shaders instead of failing compilation at runtime.
+	when ODIN_OS == .JS {
+		return
+	}
+
 	lighting.shader = rl.LoadShader(SHADOW_VERTEX_SHADER_PATH, SHADOW_FRAGMENT_SHADER_PATH)
 	if !rl.IsShaderValid(lighting.shader) {
 		log.error("Could not load the world lighting shader; using unlit rendering")
