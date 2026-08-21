@@ -7,8 +7,11 @@ import rlgl "vendor:raylib/rlgl"
 
 SHADOW_VERTEX_SHADER_PATH :: "assets/shaders/shadowmap.vs"
 SHADOW_FRAGMENT_SHADER_PATH :: "assets/shaders/shadowmap.fs"
+WEB_SHADOW_VERTEX_SHADER_PATH :: "assets/shaders/web/shadowmap.vs"
+WEB_SHADOW_FRAGMENT_SHADER_PATH :: "assets/shaders/web/shadowmap.fs"
 SHADOW_MAP_RESOLUTION :: 1080
 SHADOW_TEXTURE_SLOT :: 10
+WEB_SHADOW_TEXTURE_SLOT :: 1
 MIN_LIGHT_VIEW_SPAN :: f32(6)
 LIGHT_VIEW_PADDING :: f32(3)
 
@@ -26,14 +29,14 @@ Lighting :: struct {
 }
 
 init_lighting :: proc(lighting: ^Lighting) {
-	// Odin's bundled raylib web archive targets WebGL 1 / GLSL ES 100. The
-	// desktop shadow shader is GLSL 330, so web deliberately uses the normal
-	// model shaders instead of failing compilation at runtime.
 	when ODIN_OS == .JS {
-		return
+		lighting.shader = rl.LoadShader(
+			WEB_SHADOW_VERTEX_SHADER_PATH,
+			WEB_SHADOW_FRAGMENT_SHADER_PATH,
+		)
+	} else {
+		lighting.shader = rl.LoadShader(SHADOW_VERTEX_SHADER_PATH, SHADOW_FRAGMENT_SHADER_PATH)
 	}
-
-	lighting.shader = rl.LoadShader(SHADOW_VERTEX_SHADER_PATH, SHADOW_FRAGMENT_SHADER_PATH)
 	if !rl.IsShaderValid(lighting.shader) {
 		log.error("Could not load the world lighting shader; using unlit rendering")
 		return
@@ -114,9 +117,16 @@ begin_lit_pass :: proc(lighting: ^Lighting) {
 	// selects the shader for raylib's next batch, so activate it explicitly before
 	// assigning the manually bound shadow-map texture unit, as the raylib example does.
 	rlgl.EnableShader(lighting.shader.id)
-	rlgl.ActiveTextureSlot(SHADOW_TEXTURE_SLOT)
+	texture_slot: c.int
+	when ODIN_OS == .JS {
+		// WebGL 1 only guarantees eight fragment texture units. Unit one is free
+		// alongside the model's texture0 and works on every conforming browser.
+		texture_slot = WEB_SHADOW_TEXTURE_SLOT
+	} else {
+		texture_slot = SHADOW_TEXTURE_SLOT
+	}
+	rlgl.ActiveTextureSlot(texture_slot)
 	rlgl.EnableTexture(lighting.shadow_map.depth.id)
-	texture_slot: c.int = SHADOW_TEXTURE_SLOT
 	rlgl.SetUniform(
 		lighting.shadow_map_location,
 		&texture_slot,
@@ -127,7 +137,11 @@ begin_lit_pass :: proc(lighting: ^Lighting) {
 
 end_lit_pass :: proc(lighting: ^Lighting) {
 	rl.EndShaderMode()
-	rlgl.ActiveTextureSlot(SHADOW_TEXTURE_SLOT)
+	when ODIN_OS == .JS {
+		rlgl.ActiveTextureSlot(WEB_SHADOW_TEXTURE_SLOT)
+	} else {
+		rlgl.ActiveTextureSlot(SHADOW_TEXTURE_SLOT)
+	}
 	rlgl.DisableTexture()
 	rlgl.ActiveTextureSlot(0)
 }

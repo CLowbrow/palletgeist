@@ -6,6 +6,8 @@ import rl "vendor:raylib"
 
 PALETTE_FRAGMENT_SHADER_PATH :: "assets/shaders/resurrect_64.fs"
 SOFT_UPSCALE_FRAGMENT_SHADER_PATH :: "assets/shaders/soft_pixel_upscale.fs"
+WEB_PALETTE_FRAGMENT_SHADER_PATH :: "assets/shaders/web/resurrect_64.fs"
+WEB_SOFT_UPSCALE_FRAGMENT_SHADER_PATH :: "assets/shaders/web/soft_pixel_upscale.fs"
 MAX_SCENE_DIMENSION :: c.int(720)
 
 Post_Process :: struct {
@@ -13,29 +15,37 @@ Post_Process :: struct {
 	palette_target:      rl.RenderTexture2D,
 	palette_shader:      rl.Shader,
 	soft_upscale_shader: rl.Shader,
+	upscale_source_size_location: c.int,
+	upscale_output_size_location: c.int,
 	width:               c.int,
 	height:              c.int,
 }
 
 init_post_process :: proc(post: ^Post_Process) {
-	// These effects use GLSL 330 features that are not available in raylib's
-	// WebGL 1 build. Direct presentation keeps the browser renderer reliable.
 	when ODIN_OS == .JS {
-		return
+		post.palette_shader = rl.LoadShader(nil, WEB_PALETTE_FRAGMENT_SHADER_PATH)
+		post.soft_upscale_shader = rl.LoadShader(nil, WEB_SOFT_UPSCALE_FRAGMENT_SHADER_PATH)
+	} else {
+		post.palette_shader = rl.LoadShader(nil, PALETTE_FRAGMENT_SHADER_PATH)
+		post.soft_upscale_shader = rl.LoadShader(nil, SOFT_UPSCALE_FRAGMENT_SHADER_PATH)
 	}
-
-	post.palette_shader = rl.LoadShader(nil, PALETTE_FRAGMENT_SHADER_PATH)
 	if !rl.IsShaderValid(post.palette_shader) {
 		log.error(
 			"Could not load the Resurrect 64 post-process shader; rendering the world directly",
 		)
 	}
 
-	post.soft_upscale_shader = rl.LoadShader(nil, SOFT_UPSCALE_FRAGMENT_SHADER_PATH)
 	if !rl.IsShaderValid(post.soft_upscale_shader) {
 		log.error(
 			"Could not load the soft pixel upscale shader; presenting with bilinear filtering",
 		)
+	} else {
+		when ODIN_OS == .JS {
+			post.upscale_source_size_location =
+				rl.GetShaderLocation(post.soft_upscale_shader, "sourceSize")
+			post.upscale_output_size_location =
+				rl.GetShaderLocation(post.soft_upscale_shader, "outputSize")
+		}
 	}
 }
 
@@ -149,6 +159,22 @@ end_scene_pass_and_present :: proc(post: ^Post_Process) {
 
 	window_target := rl.Rectangle{0, 0, f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
 	if rl.IsShaderValid(post.soft_upscale_shader) {
+		when ODIN_OS == .JS {
+			source_size := rl.Vector2{f32(post.width), f32(post.height)}
+			output_size := rl.Vector2{f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight())}
+			rl.SetShaderValue(
+				post.soft_upscale_shader,
+				post.upscale_source_size_location,
+				&source_size,
+				.VEC2,
+			)
+			rl.SetShaderValue(
+				post.soft_upscale_shader,
+				post.upscale_output_size_location,
+				&output_size,
+				.VEC2,
+			)
+		}
 		rl.BeginShaderMode(post.soft_upscale_shader)
 	}
 	rl.DrawTexturePro(post.palette_target.texture, source, window_target, {}, 0, rl.WHITE)

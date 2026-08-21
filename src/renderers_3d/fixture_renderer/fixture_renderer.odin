@@ -14,13 +14,16 @@ Renderer :: struct {
 
 init :: proc(renderer: ^Renderer) {
 	renderer.door_panels = make([dynamic]Door_Panel, 0, 16)
-	when ODIN_OS != .JS {
+	when ODIN_OS == .JS {
+		renderer.door_shader =
+			rl.LoadShader(WEB_DOOR_VERTEX_SHADER_PATH, WEB_DOOR_FRAGMENT_SHADER_PATH)
+	} else {
 		renderer.door_shader = rl.LoadShader(DOOR_VERTEX_SHADER_PATH, DOOR_FRAGMENT_SHADER_PATH)
-		if rl.IsShaderValid(renderer.door_shader) {
-			renderer.door_time_location = rl.GetShaderLocation(renderer.door_shader, "time")
-		} else {
-			log.error("Could not load the animated door shader; using normal rendering")
-		}
+	}
+	if rl.IsShaderValid(renderer.door_shader) {
+		renderer.door_time_location = rl.GetShaderLocation(renderer.door_shader, "time")
+	} else {
+		log.error("Could not load the animated door shader; using normal rendering")
 	}
 }
 

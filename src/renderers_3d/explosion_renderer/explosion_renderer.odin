@@ -12,6 +12,8 @@ import rlgl "vendor:raylib/rlgl"
 
 VERTEX_SHADER_PATH :: "assets/shaders/explosion.vs"
 FRAGMENT_SHADER_PATH :: "assets/shaders/explosion.fs"
+WEB_VERTEX_SHADER_PATH :: "assets/shaders/web/explosion.vs"
+WEB_FRAGMENT_SHADER_PATH :: "assets/shaders/web/explosion.fs"
 SPHERE_RADIUS :: f32(0.5)
 SPHERE_RINGS :: 16
 SPHERE_SLICES :: 24
@@ -32,10 +34,24 @@ Renderer :: struct {
 
 init :: proc(renderer: ^Renderer) {
 	renderer.positions = make([dynamic]rl.Vector3, 0, 4)
+	when ODIN_OS == .JS {
+		renderer.shader = rl.LoadShader(WEB_VERTEX_SHADER_PATH, WEB_FRAGMENT_SHADER_PATH)
+	} else {
+		renderer.shader = rl.LoadShader(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH)
+	}
+	if rl.IsShaderValid(renderer.shader) {
+		renderer.progress_location = rl.GetShaderLocation(renderer.shader, "progress")
+		renderer.opacity_location = rl.GetShaderLocation(renderer.shader, "opacity")
+	} else {
+		log.error("Could not load the explosion shader; using normal rendering")
+	}
 }
 
 unload :: proc(renderer: ^Renderer) {
 	reset(renderer)
+	if rl.IsShaderValid(renderer.shader) {
+		rl.UnloadShader(renderer.shader)
+	}
 	delete(renderer.positions)
 	renderer^ = {}
 }
@@ -50,16 +66,9 @@ reset :: proc(renderer: ^Renderer) {
 	if renderer.model_loaded {
 		rl.UnloadModel(renderer.model)
 	}
-	if rl.IsShaderValid(renderer.shader) {
-		rl.UnloadShader(renderer.shader)
-	}
-
 	clear(&renderer.positions)
 	renderer.active_tick = nil
 	renderer.model = {}
-	renderer.shader = {}
-	renderer.progress_location = 0
-	renderer.opacity_location = 0
 	renderer.model_loaded = false
 }
 
@@ -105,15 +114,7 @@ sync :: proc(
 		return
 	}
 
-	when ODIN_OS != .JS {
-		renderer.shader = rl.LoadShader(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH)
-		if !rl.IsShaderValid(renderer.shader) {
-			log.error("Could not load the explosion shader; using normal rendering")
-			return
-		}
-
-		renderer.progress_location = rl.GetShaderLocation(renderer.shader, "progress")
-		renderer.opacity_location = rl.GetShaderLocation(renderer.shader, "opacity")
+	if rl.IsShaderValid(renderer.shader) {
 		renderer.model.materials[0].shader = renderer.shader
 	}
 }
