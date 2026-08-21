@@ -4,13 +4,6 @@ import "base:runtime"
 import "core:strings"
 import rl "vendor:raylib"
 
-LEVEL_BUTTON_WIDTH :: 180
-LEVEL_BUTTON_HEIGHT :: 44
-LEVEL_BUTTON_GAP_X :: 10
-LEVEL_BUTTON_GAP_Y :: 10
-LEVEL_BUTTON_MARGIN_X :: 32
-LEVEL_BUTTON_START_Y :: 110
-
 pretty_name :: proc(name: string) -> string {
 	name_without_extension := strings.trim_suffix(name, ".json")
 	if dash := strings.index_byte(name_without_extension, '-'); dash >= 0 {
@@ -20,13 +13,21 @@ pretty_name :: proc(name: string) -> string {
 }
 
 level_select :: proc(levels: ^[]runtime.Load_Directory_File) -> int {
+	dimensions := get_button_dimensions()
+	apply_button_text_size(dimensions)
 	screen_width := int(rl.GetScreenWidth())
-	available_width := max(screen_width - LEVEL_BUTTON_MARGIN_X * 2, LEVEL_BUTTON_WIDTH)
+	available_width := max(
+		screen_width - dimensions.level_button_margin_x * 2,
+		dimensions.level_button_width,
+	)
 	column_count := max(
 		1,
-		(available_width + LEVEL_BUTTON_GAP_X) / (LEVEL_BUTTON_WIDTH + LEVEL_BUTTON_GAP_X),
+		(available_width + dimensions.level_button_gap_x) /
+			(dimensions.level_button_width + dimensions.level_button_gap_x),
 	)
-	row_width := min(len(levels^), column_count) * (LEVEL_BUTTON_WIDTH + LEVEL_BUTTON_GAP_X) - LEVEL_BUTTON_GAP_X
+	row_width := min(len(levels^), column_count) *
+		(dimensions.level_button_width + dimensions.level_button_gap_x) -
+		dimensions.level_button_gap_x
 	start_x := (screen_width - row_width) / 2
 
 	for level, i in levels^ {
@@ -36,10 +37,13 @@ level_select :: proc(levels: ^[]runtime.Load_Directory_File) -> int {
 		column := i % column_count
 		row := i / column_count
 		bounds := rl.Rectangle{
-			f32(start_x + column * (LEVEL_BUTTON_WIDTH + LEVEL_BUTTON_GAP_X)),
-			f32(LEVEL_BUTTON_START_Y + row * (LEVEL_BUTTON_HEIGHT + LEVEL_BUTTON_GAP_Y)),
-			LEVEL_BUTTON_WIDTH,
-			LEVEL_BUTTON_HEIGHT,
+			f32(start_x + column * (dimensions.level_button_width + dimensions.level_button_gap_x)),
+			f32(
+				dimensions.level_button_start_y +
+					row * (dimensions.level_button_height + dimensions.level_button_gap_y),
+			),
+			f32(dimensions.level_button_width),
+			f32(dimensions.level_button_height),
 		}
 		if rl.GuiButton(bounds, name) {
 			return i

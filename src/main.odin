@@ -28,6 +28,7 @@ Game_State :: struct {
 	// populated by the rules engine and retained until the next move
 	retained_result: rules.Move_Result,
 	won_time:        f64,
+	buffered_input:  Maybe(rules.Direction),
 }
 
 main :: proc() {
@@ -57,7 +58,7 @@ main :: proc() {
 	rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE)
 	rl.SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
 	defer rl.CloseWindow()
-	
+
 	world.init(&game.world_renderer)
 	defer world.unload(&game.world_renderer)
 	defer model.unload(&game.world_state)
@@ -83,6 +84,7 @@ update :: proc(game: ^Game_State) {
 		game.won_time = 0
 
 		if game.current_level == len(EMBEDDED_LEVELS) - 1 {
+			game.mode = .MainMenu
 			return
 		}
 
@@ -94,7 +96,29 @@ update :: proc(game: ^Game_State) {
 	}
 
 	// Handle input
-	if game.mode == helpers.UI_Mode.Playing && !game.animation_queue.animating {
+	if game.mode == helpers.UI_Mode.Playing && game.animation_queue.animating {
+		if rl.IsKeyPressed(.LEFT) {
+			log.debug("Saving buffered left")
+			game.buffered_input = .West
+		} else if rl.IsKeyPressed(.RIGHT) {
+			log.debug("Saving buffered right")
+			game.buffered_input = .East
+		} else if rl.IsKeyPressed(.UP) {
+			log.debug("Saving buffered up")
+			game.buffered_input = .North
+		} else if rl.IsKeyPressed(.DOWN) {
+			log.debug("Saving buffered down")
+			game.buffered_input = .South
+		}
+	} else if game.mode == helpers.UI_Mode.Playing && !game.animation_queue.animating {
+
+		if direction, ok := game.buffered_input.?; ok {
+			log.debug("playing cached move")
+			game.buffered_input = nil
+			apply_move(game, direction)
+			return
+		}
+
 		if rl.IsKeyPressed(.LEFT) {
 			apply_move(game, .West)
 		} else if rl.IsKeyPressed(.RIGHT) {
@@ -154,7 +178,17 @@ draw :: proc(game: ^Game_State) {
 	if game.mode != .Playing {
 		rl.DrawText("Palletgeist", 48, 44, 40, rl.RAYWHITE)
 	} else {
-		if rl.GuiButton(rl.Rectangle{48, 44, 40, 44}, "Menu") {
+		button_dimensions := menus.get_button_dimensions()
+		menus.apply_button_text_size(button_dimensions)
+		if rl.GuiButton(
+			rl.Rectangle{
+				48,
+				44,
+				f32(button_dimensions.level_button_width),
+				f32(button_dimensions.level_button_height),
+			},
+			"Menu",
+		) {
 			game.mode = .MainMenu
 		}
 	}

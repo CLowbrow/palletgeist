@@ -6,7 +6,7 @@ import rl "vendor:raylib"
 
 PALETTE_FRAGMENT_SHADER_PATH :: "assets/shaders/resurrect_64.fs"
 SOFT_UPSCALE_FRAGMENT_SHADER_PATH :: "assets/shaders/soft_pixel_upscale.fs"
-MAX_SCENE_DIMENSION :: c.int(720)
+MAX_SCENE_DIMENSION :: c.int(1080)
 
 Post_Process :: struct {
 	scene_target:        rl.RenderTexture2D,

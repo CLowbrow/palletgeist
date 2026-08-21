@@ -7,8 +7,14 @@ RULES_LIBRARY := $(RULES_BUILD_DIR)/libgame_rules_state_c.a
 
 ifeq ($(OS),Windows_NT)
 PROJECT_BINARY := $(BUILD_DIR)/$(PROJECT).exe
+CREATE_BUILD_DIR = if not exist "$(BUILD_DIR)" mkdir "$(BUILD_DIR)"
+RUN_PROJECT = "$(PROJECT_BINARY)"
+CLEAN_BUILD_DIR = if exist "$(BUILD_DIR)" rmdir /S /Q "$(BUILD_DIR)"
 else
 PROJECT_BINARY := $(BUILD_DIR)/$(PROJECT)
+CREATE_BUILD_DIR = mkdir -p "$(BUILD_DIR)"
+RUN_PROJECT = ./$(PROJECT_BINARY)
+CLEAN_BUILD_DIR = rm -rf "$(BUILD_DIR)"
 endif
 
 ODIN ?= odin
@@ -20,11 +26,11 @@ ODIN_FLAGS ?=
 all: build
 
 build: rules
-	@mkdir -p $(BUILD_DIR)
+	@$(CREATE_BUILD_DIR)
 	$(ODIN) build $(SOURCE_DIR) -out:$(PROJECT_BINARY) -debug $(ODIN_FLAGS)
 
 run: build
-	./$(PROJECT_BINARY)
+	$(RUN_PROJECT)
 
 check: rules
 	$(ODIN) check $(SOURCE_DIR) $(ODIN_FLAGS)
@@ -37,4 +43,4 @@ rules:
 	$(CMAKE) --build $(RULES_BUILD_DIR) --target game_rules_state_c
 
 clean:
-	rm -rf $(BUILD_DIR)
+	$(CLEAN_BUILD_DIR)
