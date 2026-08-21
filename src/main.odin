@@ -27,6 +27,7 @@ Game_State :: struct {
 	animation_queue: helpers.Turn_Animation_Queue,
 	// populated by the rules engine and retained until the next move
 	retained_result: rules.Move_Result,
+	won_time:        f64,
 }
 
 main :: proc() {
@@ -46,8 +47,9 @@ main :: proc() {
 	}
 
 	game := Game_State {
-		mode   = helpers.UI_Mode.MainMenu,
-		engine = engine,
+		mode     = helpers.UI_Mode.MainMenu,
+		engine   = engine,
+		won_time = 1,
 	}
 	defer rules.dispose_move_result(&game.retained_result)
 
@@ -75,6 +77,21 @@ main :: proc() {
 
 update :: proc(game: ^Game_State) {
 	update_move_animation(game, rl.GetFrameTime())
+
+	if game.won_time != 0 && rl.GetTime() - game.won_time > 3 {
+		log.debug("Won game")
+		game.won_time = 0
+
+		if game.current_level == len(EMBEDDED_LEVELS) - 1 {
+			return
+		}
+
+		if !start_level(game, game.current_level + 1) {
+			log.errorf("Could not reset level")
+		}
+		game.mode = .Playing
+		return
+	}
 
 	// Handle input
 	if game.mode == helpers.UI_Mode.Playing && !game.animation_queue.animating {
