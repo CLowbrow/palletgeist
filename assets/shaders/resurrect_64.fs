@@ -89,6 +89,7 @@ const vec3 PALETTE[PALETTE_SIZE] = vec3[PALETTE_SIZE](
     // Level greys follow static_level_renderer exactly: its top color is
     // 200 - 10*elevation. Continuing the same spacing in both directions
     // gives the lighting pass nearby shadow and highlight choices as well.
+    vec3(    0,     0,     0)/255.0,
     vec3( 40.0,  40.0,  40.0)/255.0,
     vec3( 50.0,  50.0,  50.0)/255.0,
     vec3( 60.0,  60.0,  60.0)/255.0,
