@@ -6,7 +6,7 @@ import rl "vendor:raylib"
 
 PALETTE_FRAGMENT_SHADER_PATH :: "assets/shaders/resurrect_64.fs"
 SOFT_UPSCALE_FRAGMENT_SHADER_PATH :: "assets/shaders/soft_pixel_upscale.fs"
-MAX_SCENE_DIMENSION :: c.int(1080)
+MAX_SCENE_DIMENSION :: c.int(640)
 
 Post_Process :: struct {
 	scene_target:        rl.RenderTexture2D,
@@ -18,12 +18,12 @@ Post_Process :: struct {
 }
 
 init_post_process :: proc(post: ^Post_Process) {
-	// post.palette_shader = rl.LoadShader(nil, PALETTE_FRAGMENT_SHADER_PATH)
-	// if !rl.IsShaderValid(post.palette_shader) {
-	// 	log.error(
-	// 		"Could not load the Resurrect 64 post-process shader; rendering the world directly",
-	// 	)
-	// }
+	post.palette_shader = rl.LoadShader(nil, PALETTE_FRAGMENT_SHADER_PATH)
+	if !rl.IsShaderValid(post.palette_shader) {
+		log.error(
+			"Could not load the Resurrect 64 post-process shader; rendering the world directly",
+		)
+	}
 
 	post.soft_upscale_shader = rl.LoadShader(nil, SOFT_UPSCALE_FRAGMENT_SHADER_PATH)
 	if !rl.IsShaderValid(post.soft_upscale_shader) {
