@@ -32,6 +32,10 @@ Game_State :: struct {
 }
 
 main :: proc() {
+	// Runtime assets are distributed beside the executable. Resolve relative asset
+	// paths from there rather than inheriting the launcher's working directory.
+	rl.ChangeDirectory(rl.GetApplicationDirectory())
+
 	context.logger = log.create_console_logger()
 	defer log.destroy_console_logger(context.logger)
 

@@ -20,3 +20,6 @@ make        # builds the C rules archive and build/palletgeist
 make run    # builds, then opens the game
 make check  # type-checks the Odin project
 ```
+
+The build output includes the runtime assets under `build/assets`. Keep that
+directory beside the executable when copying or distributing the game.
