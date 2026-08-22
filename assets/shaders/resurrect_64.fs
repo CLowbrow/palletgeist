@@ -8,7 +8,7 @@ uniform vec4 colDiffuse;
 
 out vec4 finalColor;
 
-const int PALETTE_SIZE = 102;
+const int PALETTE_SIZE = 103;
 const vec3 PALETTE[PALETTE_SIZE] = vec3[PALETTE_SIZE](
     vec3( 46.0,  34.0,  47.0)/255.0,
     vec3( 62.0,  53.0,  70.0)/255.0,
@@ -89,7 +89,7 @@ const vec3 PALETTE[PALETTE_SIZE] = vec3[PALETTE_SIZE](
     // Level greys follow static_level_renderer exactly: its top color is
     // 200 - 10*elevation. Continuing the same spacing in both directions
     // gives the lighting pass nearby shadow and highlight choices as well.
-    vec3(    0,     0,     0)/255.0,
+    vec3(  1.0,   1.0,   1.0)/255.0,
     vec3( 40.0,  40.0,  40.0)/255.0,
     vec3( 50.0,  50.0,  50.0)/255.0,
     vec3( 60.0,  60.0,  60.0)/255.0,

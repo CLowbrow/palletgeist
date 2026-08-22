@@ -184,6 +184,5 @@ cells_connect :: proc(source, destination: rules.Cell, direction: rules.Directio
 		}
 	}
 
-	height, _, found := rules.ramp_endpoint(destination, rules.opposite(direction))
-	return found && source.elevation == height
+	return false	
 }
