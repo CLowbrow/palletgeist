@@ -142,7 +142,11 @@ draw_vertex :: proc(position: rl.Vector3, texcoord: rl.Vector2) {
 	rlgl.Vertex3f(position.x, position.y, position.z)
 }
 
-draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {
+draw_ramp :: proc(
+	renderer: ^Renderer,
+	cell: rules.Cell,
+	frame: ^helpers.Frame,
+) {
 	center := helpers.coordinate_to_world(frame.transform, cell.coordinate)
 	half := frame.transform.tile_size * 0.5
 
@@ -214,7 +218,17 @@ draw_ramp :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) 
 	draw_quad(b_sw, t_sw, t_nw, b_nw, rl.DARKGRAY) // West
 
 	// Top
+	texture := floor_texture(renderer, frame.level, cell.coordinate)
+	if texture.id != 0 {
+		rlgl.SetTexture(texture.id)
+	}
 	draw_gradient_quad(t_nw, t_sw, t_se, t_ne, color_nw, color_sw, color_se, color_ne)
+	if texture.id != 0 {
+		// rlSetTexture(0) does not split an active TRIANGLES batch in raylib 6,
+		// so following ramp geometry would inherit this floor's edge mask.
+		rlgl.SetTexture(floor_texture_reset_id(texture.id, rlgl.GetTextureIdDefault()))
+	}
+	
 }
 
 draw_flat :: proc(renderer: ^Renderer, cell: rules.Cell, frame: ^helpers.Frame) {

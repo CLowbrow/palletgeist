@@ -184,5 +184,11 @@ cells_connect :: proc(source, destination: rules.Cell, direction: rules.Directio
 		}
 	}
 
+	if source.kind == .Flat && destination.kind == .Ramp {
+		if direction == destination.low_direction || direction == rules.opposite(destination.low_direction) {
+			return true
+		}
+	}
+
 	return false	
 }
