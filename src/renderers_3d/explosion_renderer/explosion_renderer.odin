@@ -12,6 +12,7 @@ import rlgl "vendor:raylib/rlgl"
 
 VERTEX_SHADER_PATH :: "assets/shaders/explosion.vs"
 FRAGMENT_SHADER_PATH :: "assets/shaders/explosion.fs"
+SOUND_PATH :: "assets/sfx/bomb.wav"
 SPHERE_RADIUS :: f32(0.5)
 SPHERE_RINGS :: 16
 SPHERE_SLICES :: 24
@@ -28,14 +29,28 @@ Renderer :: struct {
 	progress_location: c.int,
 	opacity_location:  c.int,
 	model_loaded:      bool,
+	sound:             rl.Sound,
+	sound_loaded:      bool,
 }
 
 init :: proc(renderer: ^Renderer) {
 	renderer.positions = make([dynamic]rl.Vector3, 0, 4)
+	if rl.IsAudioDeviceReady() {
+		renderer.sound = rl.LoadSound(SOUND_PATH)
+		renderer.sound_loaded = rl.IsSoundValid(renderer.sound)
+		if !renderer.sound_loaded {
+			log.error("Could not load the explosion sound")
+		}
+	} else {
+		log.error("Could not initialize audio for the explosion sound")
+	}
 }
 
 unload :: proc(renderer: ^Renderer) {
 	reset(renderer)
+	if renderer.sound_loaded {
+		rl.UnloadSound(renderer.sound)
+	}
 	delete(renderer.positions)
 	renderer^ = {}
 }
@@ -95,6 +110,9 @@ sync :: proc(
 
 	if len(renderer.positions) == 0 {
 		return
+	}
+	if renderer.sound_loaded {
+		rl.PlaySound(renderer.sound)
 	}
 
 	mesh := rl.GenMeshSphere(SPHERE_RADIUS, SPHERE_RINGS, SPHERE_SLICES)
